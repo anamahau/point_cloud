@@ -22,7 +22,7 @@ MAX_Z1 = math.inf
 MAX_Z2 = math.inf
 # MAX_Y = -0.1
 # MAX_Z = 2.0
-VISUALIZE = False
+VISUALIZE = True
 
 # =====================
 # VISUALIZATION
@@ -43,13 +43,13 @@ def visualize_cloud(points, high=None, low=None, show_extremes=True):
     # Optionally add extreme points
     if show_extremes:
         if high is not None:
-            high_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.02)
+            high_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.01)
             high_sphere.translate(high)
             high_sphere.paint_uniform_color([1, 0, 0])
             geometries.append(high_sphere)
 
         if low is not None:
-            low_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.02)
+            low_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.01)
             low_sphere.translate(low)
             low_sphere.paint_uniform_color([0, 0, 1])
             geometries.append(low_sphere)
@@ -183,13 +183,16 @@ class PCAnalyzer:
 
     def process(self):
         rospy.loginfo('Waiting for point cloud...')
-        pc_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2)
+        pc_msg = rospy.wait_for_message('/rosbag/rgbd/depth/points', PointCloud2)
 
         # FAST conversion
         xyz = pointcloud2_to_xyz_fast(pc_msg)
 
         # Transform
         xyz = self.transform_points(xyz)
+
+        if VISUALIZE:
+            visualize_cloud(xyz, show_extremes=False)
 
         # Filter
         xyz = self.filter_points(xyz)

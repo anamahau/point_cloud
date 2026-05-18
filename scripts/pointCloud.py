@@ -14,17 +14,17 @@ import struct
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
 from point_cloud.msg import highLowPoint
-from std_msgs.msg import Bool, Int32, Float32MultiArray
+from std_msgs.msg import Bool, Int32, Float32MultiArray, Float32
 from geometry_msgs.msg import Polygon, Point32
 
 from tf_reader import getTfTransform
 
 
-def save_point_cloud_plot(o3d_pc, output_path="point_cloud.png",
-                          title="Point Cloud",
+def save_point_cloud_plot(o3d_pc, output_path='point_cloud.png',
+                          title='Point Cloud',
                           point_size=1,
                           dpi=300):
-    """
+    '''
     Save an Open3D point cloud as a Matplotlib 3D image.
 
     Parameters:
@@ -33,7 +33,7 @@ def save_point_cloud_plot(o3d_pc, output_path="point_cloud.png",
     - title: plot title
     - point_size: scatter point size
     - dpi: image resolution
-    """
+    '''
 
     points = np.asarray(o3d_pc.points)
 
@@ -50,9 +50,9 @@ def save_point_cloud_plot(o3d_pc, output_path="point_cloud.png",
                    s=point_size)
 
     ax.set_title(title)
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
 
     ax.view_init(elev=30, azim=45)
     ax.set_box_aspect([1, 1, 1])
@@ -72,15 +72,21 @@ def pointcloud2_to_xyz_array(cloud_msg, iteration, maxZ=math.inf):
     R = getTfTransform('base_link', 'rgbd_depth_optical_frame')
     print('========== R matrix:')
     print(R)
+    groundZ = -0.9
     if iteration == 1:
         for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):
             R_xyz = R @ np.array([p[0], p[1], p[2], 1])
-            if R_xyz[2] < maxZ:
+            if (R_xyz[2] < maxZ and R_xyz[2] > groundZ):
                 points.append([R_xyz[0], R_xyz[1], R_xyz[2]])
     elif iteration == 2:
         for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):
             R_xyz = R @ np.array([p[0], p[1], p[2], 1])
             if (R_xyz[2] < maxZ and R_xyz[1] < -0.1):
+                points.append([R_xyz[0], R_xyz[1], R_xyz[2]])
+    elif iteration == 3:
+        for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):
+            R_xyz = R @ np.array([p[0], p[1], p[2], 1])
+            if (R_xyz[2] < maxZ and R_xyz[2] > groundZ):
                 points.append([R_xyz[0], R_xyz[1], R_xyz[2]])
     return np.array(points)
 
@@ -156,7 +162,7 @@ def PCanalysis(iteration):
     o3dPC_2 = create_open3d_cloud(xyz_array_2, rgb_array_2)
     # axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1, origin=o3dPC_2.get_center())
     axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
-    # o3d.visualization.draw_geometries([o3dPC_2, axis], 'Cropped Point Cloud')
+    o3d.visualization.draw_geometries([o3dPC_2, axis], 'Cropped Point Cloud')
 
     if iteration == 1:
 
@@ -165,8 +171,8 @@ def PCanalysis(iteration):
         print('plane model:', plane_model)
         # o3d.visualization.draw_geometries([o3dPC_2], 'Plane segmentation')
         save_point_cloud_plot(o3dPC_2, 
-                      output_path="plane_segmentation.png",
-                      title="Plane Segmentation")
+                      output_path='plane_segmentation.png',
+                      title='Plane Segmentation')
 
         points = np.array(o3dPC_2.points)
         mask_plane = np.zeros(len(points), dtype=bool)
@@ -178,28 +184,37 @@ def PCanalysis(iteration):
         twoColorPC = color_pc(o3dPC_2, indexesUp, np.array([1, 0, 1]))
         # o3d.visualization.draw_geometries([twoColorPC, axis], '2 colors PC')
         save_point_cloud_plot(twoColorPC, 
-                      output_path="2_colors_PC.png",
-                      title="2 colors PC")
+                      output_path='2_colors_PC.png',
+                      title='2 colors PC')
 
         objectsPC = remove_points(twoColorPC, indexesUp)
         # o3d.visualization.draw_geometries([objectsPC], 'Objects')
         save_point_cloud_plot(objectsPC, 
-                      output_path="Objects.png",
-                      title="Objects")
+                      output_path='Objects.png',
+                      title='Objects')
 
         LHpc, highPC, lowPC = findLowHigh(objectsPC)
         # o3d.visualization.draw_geometries([LHpc, axis], '2 points')
         save_point_cloud_plot(LHpc, 
-                      output_path="2 points.png",
-                      title="2 points")
+                      output_path='2 points.png',
+                      title='2 points')
     
     elif iteration == 2:
         LHpc, highPC, lowPC = findLowHigh(o3dPC_2)
         save_point_cloud_plot(LHpc, 
-                      output_path="2 points.png",
-                      title="2 points")
+                      output_path='2 points.png',
+                      title='2 points')
+        
+    elif iteration == 3:
+        plane_model, inliers = o3dPC_2.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
+        print('plane model:', plane_model)
+        plane_points = np.asarray(o3dPC_2.points)[inliers]
+        table_height = np.mean(plane_points[:, 2])
+        print("Estimated table height (z):", table_height)
+        o3dPC_2 = color_pc(o3dPC_2, inliers, np.array([1, 0.6, 0]))
+        o3d.visualization.draw_geometries([o3dPC_2], 'Plane segmentation')
     
-    print('========== publisher 1')
+    # print('========== publisher 1')
     if iteration == 1:
         pub = rospy.Publisher('/highPCpoint', Float32MultiArray, queue_size=10, latch=True)
         while rospy.Time.now().to_sec() == 0:
@@ -216,6 +231,14 @@ def PCanalysis(iteration):
         lPC = Float32MultiArray()
         lPC.data = lowPC
         pub.publish(lPC)
+    elif iteration == 3:
+        pub = rospy.Publisher('/heightOfTable', Float32, queue_size=10, latch=True)
+        while rospy.Time.now().to_sec() == 0:
+            rospy.sleep(0.1)
+        rospy.sleep(0.5)
+        hot = Float32()
+        hot.data = table_height
+        pub.publish(hot)
     # pub = rospy.Publisher('/highLowPCpoints_new', Polygon, queue_size=10, latch=True)
     # while rospy.Time.now().to_sec() == 0:
     #     rospy.sleep(0.1)
@@ -236,7 +259,7 @@ def PCanalysis(iteration):
     # msg.highestPoint = highPC
     # msg.lowestPoint = lowPC
     # pub.publish(msg)
-    print('========== publisher 2')
+    # print('========== publisher 2')
 
 
 
@@ -246,8 +269,6 @@ if __name__ == '__main__':
     pub_old = rospy.Publisher('/highLowPCpoints', highLowPoint, queue_size=1, latch=True)
 
     rospy.Subscriber('/PCrequest', Int32, trigger_cb)
-
-    print(':)')
 
     # for i in range(2):
     # for i in range(1):
@@ -260,9 +281,16 @@ if __name__ == '__main__':
     #     PCanalysis(run_analysis)
 
     rate = rospy.Rate(10)
-    while not rospy.is_shutdown() and not run_analysis:
+    # while not rospy.is_shutdown() and not run_analysis:
+    #     rate.sleep()
+    # PCanalysis(iteration_data)
+    while not rospy.is_shutdown():
+        if run_analysis:
+            print('Trigger received, running analysis...')
+            PCanalysis(iteration_data)
+            print('Point cloud analysis is done!')
+            run_analysis = False
         rate.sleep()
-    PCanalysis(iteration_data)
 
     '''
     point cloud je zapisan kot 2D array, kjer ima vsaka tocka 6 vrednosti [x, y, z, r, g, b]

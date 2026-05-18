@@ -28,36 +28,30 @@ class dataRecorder:
 
         self.bridge = CvBridge()
 
-        rospy.Subscriber('/data_recorder/trigger', Bool, self.trigger_callback)
+        self.save()
 
-
-    def trigger_callback(self, msg):
-        if msg.data:
-            rospy.loginfo('Trigger received, running data recording...')
-            self.save()
-    
 
     def save(self):
 
         rospy.loginfo('waiting for joint_states message...')
-        self.joint_states = rospy.wait_for_message('/joint_states', JointState, timeout=10)
+        self.joint_states = rospy.wait_for_message('/rosbag/joint_states', JointState, timeout=20)
         rospy.loginfo('waiting for depth_img message...')
-        self.depth_img = rospy.wait_for_message('/rgbd/depth/image_raw', Image, timeout=10)
+        self.depth_img = rospy.wait_for_message('/rosbag/rgbd/depth/image_raw', Image, timeout=20)
         rospy.loginfo('waiting for rgb_img message...')
-        self.rgb_img = rospy.wait_for_message('/rgbd/rgb/image_raw', Image, timeout=10)
+        self.rgb_img = rospy.wait_for_message('/rosbag/rgbd/rgb/image_raw', Image, timeout=20)
         rospy.loginfo('waiting for samera_info message...')
-        self.camera_info = rospy.wait_for_message('/rgbd/rgb/camera_info', CameraInfo, timeout=10)
+        self.camera_info = rospy.wait_for_message('/rosbag/rgbd/rgb/camera_info', CameraInfo, timeout=20)
         rospy.loginfo('waiting for points message...')
-        self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=10)
+        self.points_msg = rospy.wait_for_message('/rosbag/rgbd/depth/points', PointCloud2, timeout=20)
 
         self.base_dir = Path('/talos_ws/dataForCedirnet')
         existing = sorted(self.base_dir.glob('sample_*'))
         next_idx = len(existing)
         subfolder = Path('observation_start')
-        self.new_folder = self.base_dir / f'sample_{next_idx:06d}' / subfolder
+        self.new_folder = self.base_dir / f'sample_{next_idx:04d}' / subfolder
         self.new_folder.mkdir(parents=True, exist_ok=True)
 
-        self.folder_name = f'sample_{next_idx:06d}'
+        self.folder_name = f'sample_{next_idx:04d}'
         self.folder_name_pub.publish(self.folder_name)
 
         # --------------------
@@ -74,48 +68,12 @@ class dataRecorder:
         # --------------------
         # arm_left_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'arm_left_1_link', returnMatrix=False)
-        tf_T = tf[0]
-        tf_Q = tf[1]
-        roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
-        data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
-            "position_in_meters": {
-                "x": tf_T[0],
-                "y": tf_T[1],
-                "z": tf_T[2]
-            }
-        }
-        save_path = self.new_folder / 'arm_left_pose_in_world.json'
-        with open(save_path, 'w') as f:
-            json.dump(data, f, indent=2)
+        # tf = getTfTransform('base_link', 'arm_left_1_link', returnMatrix=False)
 
         # --------------------
         # arm_left_tcp_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'gripper_left_base_link', returnMatrix=False)
-        tf_T = tf[0]
-        tf_Q = tf[1]
-        roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
-        data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
-            "position_in_meters": {
-                "x": tf_T[0],
-                "y": tf_T[1],
-                "z": tf_T[2]
-            }
-        }
-        save_path = self.new_folder / 'arm_left_tcp_pose_in_world.json'
-        with open(save_path, 'w') as f:
-            json.dump(data, f, indent=2)
+        # tf = getTfTransform('base_link', 'gripper_left_base_link', returnMatrix=False)
 
         # --------------------
         # arm_right_joints.json
@@ -131,48 +89,12 @@ class dataRecorder:
         # --------------------
         # arm_right_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'arm_right_1_link', returnMatrix=False)
-        tf_T = tf[0]
-        tf_Q = tf[1]
-        roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
-        data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
-            "position_in_meters": {
-                "x": tf_T[0],
-                "y": tf_T[1],
-                "z": tf_T[2]
-            }
-        }
-        save_path = self.new_folder / 'arm_right_pose_in_world.json'
-        with open(save_path, 'w') as f:
-            json.dump(data, f, indent=2)
+        # tf = getTfTransform('base_link', 'arm_right_1_link', returnMatrix=False)
 
         # --------------------
         # arm_right_tcp_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'gripper_right_base_link', returnMatrix=False)
-        tf_T = tf[0]
-        tf_Q = tf[1]
-        roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
-        data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
-            "position_in_meters": {
-                "x": tf_T[0],
-                "y": tf_T[1],
-                "z": tf_T[2]
-            }
-        }
-        save_path = self.new_folder / 'arm_right_tcp_pose_in_world.json'
-        with open(save_path, 'w') as f:
-            json.dump(data, f, indent=2)
+        # tf = getTfTransform('base_link', 'gripper_right_base_link', returnMatrix=False)
 
         # --------------------
         # camera_intrinsics.json
@@ -198,25 +120,7 @@ class dataRecorder:
         # --------------------
         # camera_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'rgbd_depth_optical_frame', returnMatrix=False)
-        tf_T = tf[0]
-        tf_Q = tf[1]
-        roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
-        data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
-            "position_in_meters": {
-                "x": tf_T[0],
-                "y": tf_T[1],
-                "z": tf_T[2]
-            }
-        }
-        save_path = self.new_folder / 'camera_pose_in_world.json'
-        with open(save_path, 'w') as f:
-            json.dump(data, f, indent=2)
+        # tf = getTfTransform('base_link', 'rgbd_depth_optical_frame', returnMatrix=False)
 
         # --------------------
         # image_left.png
@@ -253,5 +157,4 @@ class dataRecorder:
 
 
 if __name__ == '__main__':
-    recorder = dataRecorder()
-    rospy.spin()
+    dataRecorder()
