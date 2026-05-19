@@ -81,7 +81,8 @@ def pointcloud2_to_xyz_array(cloud_msg, iteration, maxZ=math.inf):
     elif iteration == 2:
         for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):
             R_xyz = R @ np.array([p[0], p[1], p[2], 1])
-            if (R_xyz[2] < maxZ and R_xyz[1] < -0.1):
+            # if (R_xyz[2] < maxZ and R_xyz[1] < -0.1):
+            if (R_xyz[0] < 0.8 and R_xyz[2] < 2.0 and R_xyz[2] > -0.1):
                 points.append([R_xyz[0], R_xyz[1], R_xyz[2]])
     elif iteration == 3:
         for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):

@@ -5,6 +5,9 @@ import open3d as o3d
 import rospy
 import math
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Int32, Float32MultiArray
 
@@ -23,6 +26,47 @@ MAX_Z2 = math.inf
 # MAX_Y = -0.1
 # MAX_Z = 2.0
 VISUALIZE = True
+
+def save_point_cloud_plot(points, output_path="point_cloud.png",
+                          title="Point Cloud",
+                          point_size=1,
+                          dpi=300):
+    """
+    Save an Open3D point cloud as a Matplotlib 3D image.
+
+    Parameters:
+    - o3d_pc: open3d.geometry.PointCloud
+    - output_path: file path to save image
+    - title: plot title
+    - point_size: scatter point size
+    - dpi: image resolution
+    """
+
+    # points = np.asarray(o3d_pc.points)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Use colors if available
+    '''if o3d_pc.has_colors():
+        colors = np.asarray(o3d_pc.colors)
+        ax.scatter(points[:, 0], points[:, 1], points[:, 2],
+                   c=colors, s=point_size)
+    else:'''
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2],
+                   s=point_size)
+
+    ax.set_title(title)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+
+    ax.view_init(elev=30, azim=45)
+    ax.set_box_aspect([1, 1, 1])
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
+    plt.close(fig)  # Important: prevents displaying window & frees memory
 
 # =====================
 # VISUALIZATION
@@ -190,12 +234,11 @@ class PCAnalyzer:
 
         # Transform
         xyz = self.transform_points(xyz)
-
-        if VISUALIZE:
-            visualize_cloud(xyz, show_extremes=False)
+        save_point_cloud_plot(xyz, output_path="fullPC.png", title="Point Cloud")
 
         # Filter
         xyz = self.filter_points(xyz)
+        save_point_cloud_plot(xyz, output_path="filteredPC.png", title="Point Cloud")
 
         if xyz.shape[0] == 0:
             rospy.logwarn('No points after filtering!')
@@ -240,6 +283,7 @@ class PCAnalyzer:
 
             if VISUALIZE:
                 visualize_cloud(xyz, high, low)
+                save_point_cloud_plot(xyz, output_path="plane_segmentation.png", title="Plane Segmentation")
 
         # =====================
         # Publish
@@ -276,3 +320,4 @@ class PCAnalyzer:
 if __name__ == '__main__':
     node = PCAnalyzer()
     node.run()
+    
