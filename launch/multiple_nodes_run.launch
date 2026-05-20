@@ -1,0 +1,6 @@
+
+<launch>
+    <node pkg="point_cloud" type="pointCloud.py" name="pointCloud_node" output="screen"/>
+    <node pkg="point_cloud" type="saveData.py" name="saveData_node" output="screen"/>
+    <node pkg="point_cloud" type="sshBridge_test.py" name="sshBridge_node" output="screen"/>
+</launch>
