@@ -241,7 +241,8 @@ class dataRecorder:
         # requested_model.json
         # --------------------
         data = {
-            "requested_model": "v2"
+            "requested_model": "v2+seg+rand_bg+cropping"
+            #"requested_model": "v2+seg+rand_bg+cropping+score"
         }
         save_path = self.new_folder / 'requested_model.json'
         with open(save_path, 'w') as f:
@@ -250,6 +251,22 @@ class dataRecorder:
         self.cedirnet_trigger_pub.publish(True)
 
         rospy.loginfo('Data recording finished.')
+
+        # --------------------
+        # confidence_map.tiff
+        # --------------------
+        
+        confidence_map = np.zeros((480, 640))
+        save_path = self.new_folder / 'confidence_map.tiff'
+        cv2.imwrite(str(save_path), confidence_map)
+
+        # --------------------
+        # depth_map.tiff
+        # --------------------
+
+        depth_map = np.zeros((480, 640))
+        save_path = self.new_folder / 'depth_map.tiff'
+        cv2.imwrite(str(save_path), depth_map)
 
 
 if __name__ == '__main__':
