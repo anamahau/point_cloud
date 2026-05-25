@@ -10,6 +10,7 @@ import open3d as o3d
 import tf.transformations as tft
 import sensor_msgs.point_cloud2 as pc2
 
+from PIL import ImagePIL
 from pathlib import Path
 from cv_bridge import CvBridge
 from tf_reader import getTfTransform
@@ -256,17 +257,17 @@ class dataRecorder:
         # confidence_map.tiff
         # --------------------
         
-        confidence_map = np.zeros((480, 640))
+        confidence_map = ImagePIL.new("RGB", (480, 640), color=(0, 0, 0))
         save_path = self.new_folder / 'confidence_map.tiff'
-        cv2.imwrite(str(save_path), confidence_map)
+        confidence_map.save(save_path)
 
         # --------------------
         # depth_map.tiff
         # --------------------
 
-        depth_map = np.zeros((480, 640))
+        depth_map = ImagePIL.new("RGB", (480, 640), color=(0, 0, 0))
         save_path = self.new_folder / 'depth_map.tiff'
-        cv2.imwrite(str(save_path), depth_map)
+        depth_map.save(save_path)
 
 
 if __name__ == '__main__':
