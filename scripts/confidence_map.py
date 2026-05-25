@@ -73,4 +73,8 @@ if __name__ == '__main__':
     )
 
     depth_map = np.zeros((480, 640))
-    cv2.imwrite('./test2.tiff', depth_map)
+    # cv2.imwrite('./test2.tiff', depth_map)
+
+    from PIL import Image as ImagePIL
+    depth_map = ImagePIL.new("RGB", (640, 480), color=(0, 0, 0))
+    depth_map.save('/talos_ws/depth_map.tiff')

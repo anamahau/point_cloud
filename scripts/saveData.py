@@ -242,8 +242,9 @@ class dataRecorder:
         # requested_model.json
         # --------------------
         data = {
-            "requested_model": "v2+seg+rand_bg+cropping"
-            #"requested_model": "v2+seg+rand_bg+cropping+score"
+            "requested_model": "v2"
+            # "requested_model": "v2+seg+rand_bg+cropping"
+            # "requested_model": "v2+seg+rand_bg+cropping+score"
         }
         save_path = self.new_folder / 'requested_model.json'
         with open(save_path, 'w') as f:
@@ -257,7 +258,7 @@ class dataRecorder:
         # confidence_map.tiff
         # --------------------
         
-        confidence_map = ImagePIL.new("RGB", (480, 640), color=(0, 0, 0))
+        confidence_map = ImagePIL.new("RGB", (640, 480), color=(0, 0, 0))
         save_path = self.new_folder / 'confidence_map.tiff'
         confidence_map.save(save_path)
 
@@ -265,9 +266,13 @@ class dataRecorder:
         # depth_map.tiff
         # --------------------
 
-        depth_map = ImagePIL.new("RGB", (480, 640), color=(0, 0, 0))
+        depth = self.bridge.imgmsg_to_cv2(self.depth_img, desired_encoding='passthrough')
+        if depth.dtype == np.uint16:
+            depth = depth.astype(np.float32) / 1000.0  # mm -> meters
+        elif depth.dtype == np.float32:
+            pass  # already meters
         save_path = self.new_folder / 'depth_map.tiff'
-        depth_map.save(save_path)
+        cv2.imwrite(save_path, depth)
 
 
 if __name__ == '__main__':
