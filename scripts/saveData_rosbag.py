@@ -39,17 +39,18 @@ class dataRecorder:
         self.depth_img = rospy.wait_for_message('/rosbag/rgbd/depth/image_raw', Image, timeout=20)
         rospy.loginfo('waiting for rgb_img message...')
         self.rgb_img = rospy.wait_for_message('/rosbag/rgbd/rgb/image_raw', Image, timeout=20)
-        rospy.loginfo('waiting for samera_info message...')
+        rospy.loginfo('waiting for camera_info message...')
         self.camera_info = rospy.wait_for_message('/rosbag/rgbd/rgb/camera_info', CameraInfo, timeout=20)
-        rospy.loginfo('waiting for points message...')
-        self.points_msg = rospy.wait_for_message('/rosbag/rgbd/depth/points', PointCloud2, timeout=20)
+        # rospy.loginfo('waiting for points message...')
+        # self.points_msg = rospy.wait_for_message('/rosbag/rgbd/depth/points', PointCloud2, timeout=20)
 
         self.base_dir = Path('/talos_ws/dataForCedirnet')
         existing = sorted(self.base_dir.glob('sample_*'))
         next_idx = len(existing)
         subfolder = Path('observation_start')
-        self.new_folder = self.base_dir / f'sample_{next_idx:04d}' / subfolder
-        self.new_folder.mkdir(parents=True, exist_ok=True)
+        # self.new_folder = self.base_dir / f'sample_{next_idx:04d}' / subfolder
+        # self.new_folder.mkdir(parents=True, exist_ok=True)
+        self.new_folder = Path('/talos_ws/dataForCedirnet/sample_0004/observation_start')
 
         self.folder_name = f'sample_{next_idx:04d}'
         self.folder_name_pub.publish(self.folder_name)
@@ -57,13 +58,13 @@ class dataRecorder:
         # --------------------
         # arm_left_joints.json
         # --------------------
-        left_joints = self.joint_states.position[0:7]
+        '''left_joints = self.joint_states.position[0:7]
         data = {
             "values": list(left_joints)
         }
         save_path = self.new_folder / 'arm_left_joints.json'
         with open(save_path, 'w') as f:
-            json.dump(data, f, indent=4)
+            json.dump(data, f, indent=4)'''
 
         # --------------------
         # arm_left_pose_in_world.json
@@ -78,13 +79,13 @@ class dataRecorder:
         # --------------------
         # arm_right_joints.json
         # --------------------
-        right_joints = self.joint_states.position[7:14]
+        '''right_joints = self.joint_states.position[7:14]
         data = {
             "values": list(right_joints)
         }
         save_path = self.new_folder / 'arm_right_joints.json'
         with open(save_path, 'w') as f:
-            json.dump(data, f, indent=4)
+            json.dump(data, f, indent=4)'''
 
         # --------------------
         # arm_right_pose_in_world.json
@@ -99,7 +100,7 @@ class dataRecorder:
         # --------------------
         # camera_intrinsics.json
         # --------------------
-        data = {
+        '''data = {
             "image_resolution": {
                 "width": self.camera_info.width,
                 "height": self.camera_info.height
@@ -115,7 +116,7 @@ class dataRecorder:
         }
         save_path = self.new_folder / 'camera_intrinsics.json'
         with open(save_path, "w") as f:
-            json.dump(data, f, indent=4)
+            json.dump(data, f, indent=4)'''
 
         # --------------------
         # camera_pose_in_world.json
@@ -125,26 +126,26 @@ class dataRecorder:
         # --------------------
         # image_left.png
         # --------------------
-        cv_img = self.bridge.imgmsg_to_cv2(self.rgb_img, desired_encoding='bgr8')
+        '''cv_img = self.bridge.imgmsg_to_cv2(self.rgb_img, desired_encoding='bgr8')
         save_path = self.new_folder / 'image_left.png'
-        cv2.imwrite(str(save_path), cv_img)
+        cv2.imwrite(str(save_path), cv_img)'''
 
         # --------------------
         # point_cloud.ply
         # --------------------
-        points = np.array(
+        '''points = np.array(
             list(pc2.read_points(self.points_msg, field_names=('x', 'y', 'z'), skip_nans=True)),
             dtype=np.float32
         )
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points)
         save_path = self.new_folder / 'point_cloud.ply'
-        o3d.io.write_point_cloud(str(save_path), pcd)
+        o3d.io.write_point_cloud(str(save_path), pcd)'''
 
         # --------------------
         # requested_model.json
         # --------------------
-        data = {
+        '''data = {
             "requested_model": "v2"
         }
         save_path = self.new_folder / 'requested_model.json'
@@ -153,7 +154,20 @@ class dataRecorder:
 
         self.cedirnet_trigger_pub.publish(True)
 
-        rospy.loginfo('Data recording finished.')
+        rospy.loginfo('Data recording finished.')'''
+
+        # --------------------
+        # depth_map.tiff
+        # --------------------
+
+        depth = self.bridge.imgmsg_to_cv2(self.depth_img, desired_encoding='passthrough')
+        if depth.dtype == np.uint16:
+            depth = depth.astype(np.float32) / 1000.0  # mm -> meters
+        elif depth.dtype == np.float32:
+            pass  # already meters
+        save_path = self.new_folder / 'depth_map.tiff'
+        cv2.imwrite(save_path, depth)
+        print('type: ', depth.dtype)
 
 
 if __name__ == '__main__':

@@ -80,15 +80,15 @@ class dataRecorder:
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
         data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
             "position_in_meters": {
                 "x": tf_T[0],
                 "y": tf_T[1],
                 "z": tf_T[2]
+            },
+            "rotation_euler_xyz_in_radians": {
+                "roll": roll,
+                "pitch": pitch,
+                "yaw": yaw
             }
         }
         save_path = self.new_folder / 'arm_left_pose_in_world.json'
@@ -103,15 +103,15 @@ class dataRecorder:
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
         data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
             "position_in_meters": {
                 "x": tf_T[0],
                 "y": tf_T[1],
                 "z": tf_T[2]
+            },
+            "rotation_euler_xyz_in_radians": {
+                "roll": roll,
+                "pitch": pitch,
+                "yaw": yaw
             }
         }
         save_path = self.new_folder / 'arm_left_tcp_pose_in_world.json'
@@ -137,15 +137,15 @@ class dataRecorder:
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
         data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
             "position_in_meters": {
                 "x": tf_T[0],
                 "y": tf_T[1],
                 "z": tf_T[2]
+            },
+            "rotation_euler_xyz_in_radians": {
+                "roll": roll,
+                "pitch": pitch,
+                "yaw": yaw
             }
         }
         save_path = self.new_folder / 'arm_right_pose_in_world.json'
@@ -160,15 +160,15 @@ class dataRecorder:
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
         data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
             "position_in_meters": {
                 "x": tf_T[0],
                 "y": tf_T[1],
                 "z": tf_T[2]
+            },
+            "rotation_euler_xyz_in_radians": {
+                "roll": roll,
+                "pitch": pitch,
+                "yaw": yaw
             }
         }
         save_path = self.new_folder / 'arm_right_tcp_pose_in_world.json'
@@ -204,15 +204,15 @@ class dataRecorder:
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
         data = {
-            "rotation_euler_xyz_in_radians": {
-                "roll": roll,
-                "pitch": pitch,
-                "yaw": yaw
-            },
             "position_in_meters": {
                 "x": tf_T[0],
                 "y": tf_T[1],
                 "z": tf_T[2]
+            },
+            "rotation_euler_xyz_in_radians": {
+                "roll": roll,
+                "pitch": pitch,
+                "yaw": yaw
             }
         }
         save_path = self.new_folder / 'camera_pose_in_world.json'
