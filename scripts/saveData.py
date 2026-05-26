@@ -10,7 +10,7 @@ import open3d as o3d
 import tf.transformations as tft
 import sensor_msgs.point_cloud2 as pc2
 
-from PIL import ImagePIL
+from PIL import Image as ImagePIL
 from pathlib import Path
 from cv_bridge import CvBridge
 from tf_reader import getTfTransform
