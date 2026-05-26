@@ -223,8 +223,11 @@ class dataRecorder:
         # image_left.png
         # --------------------
         cv_img = self.bridge.imgmsg_to_cv2(self.rgb_img, desired_encoding='bgr8')
+        # cv_img_resized = cv2.resize(cv_img, (854, 480), interpolation=cv2.INTER_LINEAR)
+        # cv_img_resized = cv2.resize(cv_img, (854, 480), interpolation=cv2.INTER_NEAREST)
+        padded_img = cv2.copyMakeBorder(cv_img, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         save_path = self.new_folder / 'image_left.png'
-        cv2.imwrite(str(save_path), cv_img)
+        cv2.imwrite(str(save_path), padded_img)
 
         # --------------------
         # point_cloud.ply
@@ -255,24 +258,29 @@ class dataRecorder:
         rospy.loginfo('Data recording finished.')
 
         # --------------------
-        # confidence_map.tiff
+        # depth_image.jpg
         # --------------------
-        
-        confidence_map = ImagePIL.new("RGB", (640, 480), color=(0, 0, 0))
-        save_path = self.new_folder / 'confidence_map.tiff'
-        confidence_map.save(save_path)
 
         # --------------------
         # depth_map.tiff
         # --------------------
-
         depth = self.bridge.imgmsg_to_cv2(self.depth_img, desired_encoding='passthrough')
         if depth.dtype == np.uint16:
             depth = depth.astype(np.float32) / 1000.0  # mm -> meters
         elif depth.dtype == np.float32:
             pass  # already meters
+        padded_depth = cv2.copyMakeBorder(depth, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         save_path = self.new_folder / 'depth_map.tiff'
-        cv2.imwrite(save_path, depth)
+        cv2.imwrite(save_path, padded_depth)
+
+        # --------------------
+        # confidence_map.tiff
+        # --------------------
+        # confidence_map = ImagePIL.new("RGB", (640, 480), color=(0, 0, 0))
+        confidence_map = ImagePIL.new("RGB", (854, 480), color=(0, 0, 0))
+        save_path = self.new_folder / 'confidence_map.tiff'
+        confidence_map.save(save_path)
+        # resize 640x480 to 854x480 (107 on each side)
 
 
 if __name__ == '__main__':
