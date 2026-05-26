@@ -18,6 +18,7 @@ REMOTE_PATH = '/home/anamarija/cedirnet-dev/tools/unfolding_evaluation_ral2025/g
 FOLDER_NAME = None
 # FOLDER_NAME = 'sample_000011'
 FOLDER_PATH = '/talos_ws/dataForCedirnet'
+# FOLDER_PATH = '/home/pal/docker_anamarija/dataForCedirnet'
 
 
 def run_cmd(cmd):

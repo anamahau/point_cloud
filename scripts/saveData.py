@@ -52,6 +52,7 @@ class dataRecorder:
         self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=10)
 
         self.base_dir = Path('/talos_ws/dataForCedirnet')
+        # self.base_dir = Path('/home/pal/docker_anamarija/dataForCedirnet')
         existing = sorted(self.base_dir.glob('sample_*'))
         next_idx = len(existing)
         subfolder = Path('observation_start')
