@@ -261,6 +261,11 @@ class dataRecorder:
         # --------------------
         # depth_image.jpg
         # --------------------
+        depth = self.bridge.imgmsg_to_cv2(self.depth_img, desired_encoding='passthrough')
+        save_path = self.new_folder / 'depth_image.jpg'
+        cv2.imwrite(save_path, depth)
+        print('==== type:', depth.dtype)
+        # print(depth[:20, :20])
 
         # --------------------
         # depth_map.tiff

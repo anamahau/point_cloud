@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
-import subprocess
-import time
 import os
-import rospy
-from std_msgs.msg import String, Bool
+import cv2
 import json
-from geometry_msgs.msg import PoseStamped
+import time
+import rospy
+import subprocess
+import numpy as np
 import tf.transformations as tft
+from tf_reader import getTfTransform
+from std_msgs.msg import String, Bool
+from geometry_msgs.msg import PoseStamped
 
 
 CONTAINER_NAME = 'talos_clothes'
@@ -76,6 +79,34 @@ def read_goal_pose():
     pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
     pub.publish(msg)
 
+def read_goal_coordinates():
+    depth_img = cv2.imread(f"{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff")
+    file = f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json"
+    with open(file, 'r') as f:
+        data = json.load(f)
+    best_grasp = max(data, key=lambda x: x["score"])
+    u = best_grasp["u"]
+    v = best_grasp["v"]
+    z = depth_img[u, v]
+    file = f"{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json"
+    with open(file, 'r') as f:
+        data = json.load(f)
+    f = data["focal_lengths_in_pixels"]
+    c = data["principal_point_in_pixels"]
+    fx = f["fx"]
+    fy = f["fy"]
+    cx = c["cx"]
+    cy = c["cy"]
+    x = (u - cx) * z / fx
+    y = (v - cy) * z / fy
+    transformMatrix = getTfTransform('base_link', 'rgbd_depth_optical_frame')
+    xyz = transformMatrix @ np.array([x, y, z, 1])
+    msg = PoseStamped()
+    msg.pose.position.x = xyz[0]
+    msg.pose.position.y = xyz[1]
+    msg.pose.position.z = xyz[2]
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub.publish(msg)
 
 
 # =========================
@@ -106,6 +137,8 @@ def trigger_callback(msg):
         wait_for_result()
         copy_result_back()
         rospy.loginfo('Done.')
+        rospy.loginfo('Starting result transformation...')
+        read_goal_coordinates()
 
     except Exception as e:
         rospy.logerr(f'Error: {e}')
