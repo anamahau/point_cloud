@@ -81,13 +81,7 @@ def read_goal_pose():
 
 def read_goal_coordinates():
     depth_img = cv2.imread(f"{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff")
-    file = f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json"
-    with open(file, 'r') as f:
-        data = json.load(f)
-    best_grasp = max(data, key=lambda x: x["score"])
-    u = best_grasp["u"]
-    v = best_grasp["v"]
-    z = depth_img[u, v]
+    rgb_img = cv2.imread(f"{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png")
     file = f"{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json"
     with open(file, 'r') as f:
         data = json.load(f)
@@ -97,16 +91,36 @@ def read_goal_coordinates():
     fy = f["fy"]
     cx = c["cx"]
     cy = c["cy"]
-    x = (u - cx) * z / fx
-    y = (v - cy) * z / fy
     transformMatrix = getTfTransform('base_link', 'rgbd_depth_optical_frame')
-    xyz = transformMatrix @ np.array([x, y, z, 1])
-    msg = PoseStamped()
-    msg.pose.position.x = xyz[0]
-    msg.pose.position.y = xyz[1]
-    msg.pose.position.z = xyz[2]
-    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
-    pub.publish(msg)
+    file = f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json"
+    with open(file, 'r') as f:
+        data = json.load(f)
+    for i, grasp in enumerate(data):
+        u = grasp["u"]
+        v = grasp["v"]
+        z = depth_img[v, u]
+        x = (u - cx) * z / fx
+        y = (v - cy) * z / fy
+        xyz = transformMatrix @ np.array([x, y, z, 1])
+        if (z == 0.0):
+            print('point', i, '-', xyz, '- invalid depth')
+            cv2.circle(rgb_img, (u, v), 5, (0, 0, 255), -1)
+            cv2.putText(rgb_img, str(i), (u-5, v-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+        elif (xyz[0] > 0.7):
+            print('point', i, '-', xyz, '- unreachable x')
+            cv2.circle(rgb_img, (u, v), 5, (255, 0, 0), -1)
+            cv2.putText(rgb_img, str(i), (u-5, v-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
+        else:
+            print('point', i, '-', xyz)
+            cv2.circle(rgb_img, (u, v), 5, (0, 255, 0), -1)
+            cv2.putText(rgb_img, str(i), (u-5, v-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+    cv2.imwrite(f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/test.png", rgb_img)
+    # msg = PoseStamped()
+    # msg.pose.position.x = xyz[0]
+    # msg.pose.position.y = xyz[1]
+    # msg.pose.position.z = xyz[2]
+    # pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    # pub.publish(msg)
 
 
 # =========================

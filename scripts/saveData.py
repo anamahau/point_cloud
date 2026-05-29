@@ -46,10 +46,10 @@ class dataRecorder:
         self.depth_img = rospy.wait_for_message('/rgbd/depth/image_raw', Image, timeout=10)
         rospy.loginfo('waiting for rgb_img message...')
         self.rgb_img = rospy.wait_for_message('/rgbd/rgb/image_raw', Image, timeout=10)
-        rospy.loginfo('waiting for samera_info message...')
+        rospy.loginfo('waiting for camera_info message...')
         self.camera_info = rospy.wait_for_message('/rgbd/rgb/camera_info', CameraInfo, timeout=10)
         rospy.loginfo('waiting for points message...')
-        self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=10)
+        self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=20)
 
         self.base_dir = Path('/talos_ws/dataForCedirnet')
         # self.base_dir = Path('/home/pal/docker_anamarija/dataForCedirnet')
@@ -181,7 +181,8 @@ class dataRecorder:
         # --------------------
         data = {
             "image_resolution": {
-                "width": self.camera_info.width,
+                # "width": self.camera_info.width,
+                "width": self.camera_info.width+214,
                 "height": self.camera_info.height
             },
             "focal_lengths_in_pixels": {
@@ -247,6 +248,8 @@ class dataRecorder:
         # --------------------
         data = {
             "requested_model": "v2"
+            # "requested_model": "v2+seg"
+            # "requested_model": "v2+seg+rand_bg"
             # "requested_model": "v2+seg+rand_bg+cropping"
             # "requested_model": "v2+seg+rand_bg+cropping+score"
         }

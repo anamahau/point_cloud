@@ -85,9 +85,9 @@ if __name__ == '__main__':
     # transform = getTfTransform('head_2_link', 'base_link', returnMatrix=False)
     # print(transform)
 
-    print('rgbd_depth_optical_frame:')
-    print(getTfTransform('base_link', 'rgbd_depth_optical_frame'))
-    print(getTfTransform('base_link', 'rgbd_depth_optical_frame', returnMatrix=False))
+    # print('rgbd_depth_optical_frame:')
+    # print(getTfTransform('base_link', 'rgbd_depth_optical_frame'))
+    # print(getTfTransform('base_link', 'rgbd_depth_optical_frame', returnMatrix=False))
 
     print('gripper_right_base_link:')
     print(getTfTransform('base_link', 'gripper_right_base_link'))
@@ -97,18 +97,18 @@ if __name__ == '__main__':
     print(getTfTransform('base_link', 'gripper_left_base_link'))
     print(getTfTransform('base_link', 'gripper_left_base_link', returnMatrix=False))
 
-    print('arm_right_1_link:')
-    print(getTfTransform('base_link', 'arm_right_1_link'))
-    print(getTfTransform('base_link', 'arm_right_1_link', returnMatrix=False))
+    # print('arm_right_1_link:')
+    # print(getTfTransform('base_link', 'arm_right_1_link'))
+    # print(getTfTransform('base_link', 'arm_right_1_link', returnMatrix=False))
 
-    print('arm_left_1_link:')
-    print(getTfTransform('base_link', 'arm_left_1_link'))
-    print(getTfTransform('base_link', 'arm_left_1_link', returnMatrix=False))
+    # print('arm_left_1_link:')
+    # print(getTfTransform('base_link', 'arm_left_1_link'))
+    # print(getTfTransform('base_link', 'arm_left_1_link', returnMatrix=False))
 
-    print('arm_right_7_link:')
-    print(getTfTransform('base_link', 'arm_right_7_link'))
-    print(getTfTransform('base_link', 'arm_right_7_link', returnMatrix=False))
+    # print('arm_right_7_link:')
+    # print(getTfTransform('base_link', 'arm_right_7_link'))
+    # print(getTfTransform('base_link', 'arm_right_7_link', returnMatrix=False))
 
-    print('arm_left_7_link:')
-    print(getTfTransform('base_link', 'arm_left_7_link'))
-    print(getTfTransform('base_link', 'arm_left_7_link', returnMatrix=False))
+    # print('arm_left_7_link:')
+    # print(getTfTransform('base_link', 'arm_left_7_link'))
+    # print(getTfTransform('base_link', 'arm_left_7_link', returnMatrix=False))
