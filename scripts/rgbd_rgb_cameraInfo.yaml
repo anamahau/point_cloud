@@ -1,0 +1,26 @@
+image_width: 640
+image_height: 480
+camera_name: rgbd_rgb_optical_frame
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [601.6065636728713,   0.0            , 331.3813503945478,
+           0.0            , 603.8462942356445, 240.5251371310322,
+           0.0            ,   0.0            ,   1.0            ]
+camera_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.152419583286078, -0.2390565420400124, -0.00876329323936622, 0.002391203096141693, 0.0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [619.0596313476562,   0.0          , 332.8602444391327, 0.0,
+           0.0            , 619.91943359375, 237.1874626590579, 0.0,
+           0.0            ,   0.0          ,   1.0            , 0.0]

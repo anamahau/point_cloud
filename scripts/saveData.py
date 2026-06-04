@@ -43,11 +43,14 @@ class dataRecorder:
         rospy.loginfo('waiting for joint_states message...')
         self.joint_states = rospy.wait_for_message('/joint_states', JointState, timeout=10)
         rospy.loginfo('waiting for depth_img message...')
-        self.depth_img = rospy.wait_for_message('/rgbd/depth/image_raw', Image, timeout=10)
+        # self.depth_img = rospy.wait_for_message('/rgbd/depth/image_raw', Image, timeout=10)
+        self.depth_img = rospy.wait_for_message('/camera/aligned_depth_to_color/image_raw', Image, timeout=10)
         rospy.loginfo('waiting for rgb_img message...')
-        self.rgb_img = rospy.wait_for_message('/rgbd/rgb/image_raw', Image, timeout=10)
+        # self.rgb_img = rospy.wait_for_message('/rgbd/rgb/image_raw', Image, timeout=10)
+        self.rgb_img = rospy.wait_for_message('/camera/color/image_raw', Image, timeout=10)
         rospy.loginfo('waiting for camera_info message...')
-        self.camera_info = rospy.wait_for_message('/rgbd/rgb/camera_info', CameraInfo, timeout=10)
+        # self.camera_info = rospy.wait_for_message('/rgbd/rgb/camera_info', CameraInfo, timeout=10)
+        self.camera_info = rospy.wait_for_message('/camera/color/camera_info', CameraInfo, timeout=10)
         rospy.loginfo('waiting for points message...')
         self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=20)
 
@@ -227,7 +230,8 @@ class dataRecorder:
         cv_img = self.bridge.imgmsg_to_cv2(self.rgb_img, desired_encoding='bgr8')
         # cv_img_resized = cv2.resize(cv_img, (854, 480), interpolation=cv2.INTER_LINEAR)
         # cv_img_resized = cv2.resize(cv_img, (854, 480), interpolation=cv2.INTER_NEAREST)
-        padded_img = cv2.copyMakeBorder(cv_img, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        # padded_img = cv2.copyMakeBorder(cv_img, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        padded_img = cv2.copyMakeBorder(cv_img, top=381, bottom=381, left=784, right=784, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         save_path = self.new_folder / 'image_left.png'
         cv2.imwrite(str(save_path), padded_img)
 
@@ -278,7 +282,8 @@ class dataRecorder:
             depth = depth.astype(np.float32) / 1000.0  # mm -> meters
         elif depth.dtype == np.float32:
             pass  # already meters
-        padded_depth = cv2.copyMakeBorder(depth, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        # padded_depth = cv2.copyMakeBorder(depth, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        padded_depth = cv2.copyMakeBorder(depth, top=381, bottom=381, left=784, right=784, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         save_path = self.new_folder / 'depth_map.tiff'
         cv2.imwrite(save_path, padded_depth)
 

@@ -1,0 +1,26 @@
+image_width: 1920
+image_height: 1080
+camera_name: camera_color_optical_frame
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [1386.7108154296875,    0.0            , 961.28955078125  ,
+            0.0            , 1387.0367431640625, 548.5848999023438,
+            0.0            ,    0.0            ,   1.0            ]
+camera_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.0, 0.0, 0.0, 0.0, 0.0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [1386.7108154296875,    0.0            , 961.28955078125  , 0.0,
+            0.0            , 1387.0367431640625, 548.5848999023438, 0.0,
+            0.0            ,    0.0            ,   1.0            , 0.0]
