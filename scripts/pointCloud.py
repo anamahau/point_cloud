@@ -72,11 +72,11 @@ def pointcloud2_to_xyz_array(cloud_msg, iteration, maxZ=math.inf):
     R = getTfTransform('base_link', 'rgbd_depth_optical_frame')
     print('========== R matrix:')
     print(R)
-    groundZ = -0.9
+    groundZ = -0.5
     if iteration == 1:
         for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):
             R_xyz = R @ np.array([p[0], p[1], p[2], 1])
-            if (R_xyz[2] < maxZ and R_xyz[2] > groundZ):
+            if (R_xyz[2] < maxZ and R_xyz[2] > groundZ and R_xyz[0] < 1.5):
                 points.append([R_xyz[0], R_xyz[1], R_xyz[2]])
     elif iteration == 2:
         for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):
@@ -87,7 +87,7 @@ def pointcloud2_to_xyz_array(cloud_msg, iteration, maxZ=math.inf):
     elif iteration == 3:
         for p in pc2.read_points(cloud_msg, field_names=('x', 'y', 'z'), skip_nans=True):
             R_xyz = R @ np.array([p[0], p[1], p[2], 1])
-            if (R_xyz[2] < maxZ and R_xyz[2] > groundZ):
+            if (R_xyz[2] < maxZ and R_xyz[2] > groundZ and R_xyz[0] < 1.3):
                 points.append([R_xyz[0], R_xyz[1], R_xyz[2]])
     return np.array(points)
 
@@ -214,6 +214,9 @@ def PCanalysis(iteration):
         print("Estimated table height (z):", table_height)
         o3dPC_2 = color_pc(o3dPC_2, inliers, np.array([1, 0.6, 0]))
         o3d.visualization.draw_geometries([o3dPC_2], 'Plane segmentation')
+        save_point_cloud_plot(o3dPC_2, 
+                      output_path='table.png',
+                      title='table')
     
     # print('========== publisher 1')
     if iteration == 1:
