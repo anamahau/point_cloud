@@ -79,7 +79,8 @@ class dataRecorder:
         # --------------------
         # arm_left_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'arm_left_1_link', returnMatrix=False)
+        # tf = getTfTransform('base_link', 'arm_left_1_link', returnMatrix=False)
+        tf = getTfTransform('odom', 'arm_left_1_link', returnMatrix=False)
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -102,7 +103,8 @@ class dataRecorder:
         # --------------------
         # arm_left_tcp_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'gripper_left_base_link', returnMatrix=False)
+        # tf = getTfTransform('base_link', 'gripper_left_base_link', returnMatrix=False)
+        tf = getTfTransform('odom', 'gripper_left_base_link', returnMatrix=False)
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -136,7 +138,8 @@ class dataRecorder:
         # --------------------
         # arm_right_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'arm_right_1_link', returnMatrix=False)
+        # tf = getTfTransform('base_link', 'arm_right_1_link', returnMatrix=False)
+        tf = getTfTransform('odom', 'arm_right_1_link', returnMatrix=False)
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -159,7 +162,8 @@ class dataRecorder:
         # --------------------
         # arm_right_tcp_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'gripper_right_base_link', returnMatrix=False)
+        # tf = getTfTransform('base_link', 'gripper_right_base_link', returnMatrix=False)
+        tf = getTfTransform('odom', 'gripper_right_base_link', returnMatrix=False)
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -204,7 +208,8 @@ class dataRecorder:
         # --------------------
         # camera_pose_in_world.json
         # --------------------
-        tf = getTfTransform('base_link', 'rgbd_depth_optical_frame', returnMatrix=False)
+        # tf = getTfTransform('base_link', 'rgbd_depth_optical_frame', returnMatrix=False)
+        tf = getTfTransform('odom', 'rgbd_depth_optical_frame', returnMatrix=False)
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)

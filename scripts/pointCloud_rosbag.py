@@ -27,7 +27,8 @@ def pointcloud2_to_xyz_array(cloud_msg, maxZ=math.inf):
     R = np.array([[ math.cos(jointValue), 0, math.sin(jointValue)],
                   [                    0, 1,                    0],
                   [-math.sin(jointValue), 1, math.cos(jointValue)]])
-    R_tf = getTfTransform('base_link', 'head_2_link')
+    # R_tf = getTfTransform('base_link', 'head_2_link')
+    R_tf = getTfTransform('odom', 'head_2_link')
     # R = np.eye(4)
     R_rot = np.array([
         [ 0,  0, 1, 0],

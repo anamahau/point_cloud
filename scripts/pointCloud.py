@@ -69,7 +69,8 @@ def pointcloud2_to_xyz_array(cloud_msg, iteration, maxZ=math.inf):
     print('Hello from pointcloud2_to_xyz_array :)')
     print('iteration ', iteration)
     points = []
-    R = getTfTransform('base_link', 'rgbd_depth_optical_frame')
+    # R = getTfTransform('base_link', 'rgbd_depth_optical_frame')
+    R = getTfTransform('odom', 'rgbd_depth_optical_frame')
     print('========== R matrix:')
     print(R)
     groundZ = -0.5

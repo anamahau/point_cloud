@@ -95,7 +95,7 @@ REMOTE_USER = 'anamarija'
 REMOTE_HOST = '178.172.42.49'
 REMOTE_PATH = '/home/anamarija/cedirnet-dev/tools/unfolding_evaluation_ral2025/grasp_inference'
 FOLDER_PATH = '/talos_ws/dataForCedirnet'
-FOLDER_NAME = 'sample_000027'
+FOLDER_NAME = 'sample_000030'
 
 
 if __name__ == '__main__':

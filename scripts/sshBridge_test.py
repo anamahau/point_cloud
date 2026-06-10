@@ -91,7 +91,8 @@ def read_goal_coordinates():
     fy = f["fy"]
     cx = c["cx"]
     cy = c["cy"]
-    transformMatrix_base2orb = getTfTransform('base_link', 'rgbd_depth_optical_frame')
+    # transformMatrix_base2orb = getTfTransform('base_link', 'rgbd_depth_optical_frame')
+    transformMatrix_base2orb = getTfTransform('odom', 'rgbd_depth_optical_frame')
     file = f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json"
     transformMatrix_orb2rs = np.array([
             [ 0.9989575 , 0.04022338,  0.02158668, -0.00320142],
