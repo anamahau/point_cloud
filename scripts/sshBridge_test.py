@@ -22,6 +22,7 @@ FOLDER_NAME = None
 # FOLDER_NAME = 'sample_000011'
 FOLDER_PATH = '/talos_ws/dataForCedirnet'
 # FOLDER_PATH = '/home/pal/docker_anamarija/dataForCedirnet'
+MERGED_NAME = None
 
 
 def run_cmd(cmd):
@@ -93,13 +94,13 @@ def read_goal_coordinates():
     cy = c["cy"]
     # transformMatrix_base2orb = getTfTransform('base_link', 'rgbd_depth_optical_frame')
     transformMatrix_base2orb = getTfTransform('odom', 'rgbd_depth_optical_frame')
-    file = f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json"
     transformMatrix_orb2rs = np.array([
             [ 0.9989575 , 0.04022338,  0.02158668, -0.00320142],
             [-0.03988856, 0.99908041, -0.0157236 , -0.10964579],
             [-0.02219929, 0.01484615,  0.99964333, -0.05616454],
             [ 0.0       , 0.0       ,  0.0       ,  1.0       ]
         ])
+    file = f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json"
     with open(file, 'r') as f:
         data = json.load(f)
     for i, grasp in enumerate(data):
@@ -129,6 +130,82 @@ def read_goal_coordinates():
     # msg.pose.position.z = xyz[2]
     # pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
     # pub.publish(msg)
+    finished_pub = rospy.Publisher('/cedirnet/finished', Bool, queue_size=10)
+    msgBool = Bool()
+    msgBool.data = True
+    finished_pub.publish(msgBool)
+
+def fill_merged_json():
+    mergedFile = f'{FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
+    with open(mergedFile, 'r') as f:
+        mergedJsonData = json.load(f)
+    depth_img = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff')
+    rgb_img = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png')
+    file = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
+    with open(file, 'r') as f:
+        data = json.load(f)
+    f = data["focal_lengths_in_pixels"]
+    c = data["principal_point_in_pixels"]
+    fx = f["fx"]
+    fy = f["fy"]
+    cx = c["cx"]
+    cy = c["cy"]
+    transformMatrix_base2orb = getTfTransform('odom', 'rgbd_depth_optical_frame')
+    transformMatrix_orb2rs = np.array([
+            [ 0.9989575 , 0.04022338,  0.02158668, -0.00320142],
+            [-0.03988856, 0.99908041, -0.0157236 , -0.10964579],
+            [-0.02219929, 0.01484615,  0.99964333, -0.05616454],
+            [ 0.0       , 0.0       ,  0.0       ,  1.0       ]
+        ])
+    file = f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json"
+    with open(file, 'r') as f:
+        data = json.load(f)
+
+    for i, grasp in enumerate(data):
+        u = grasp["u"]
+        v = grasp["v"]
+        z = depth_img[v, u]
+        x = (u - cx) * z / fx
+        y = (v - cy) * z / fy
+        score = grasp["score"]
+        orientation = grasp["rotation_euler_xyz_in_radians"]
+        tmpDict = {
+            "position_in_meters": {
+                "x": x,
+                "y": y,
+                "z": z
+            },
+            "rotation_euler_xyz_in_radians": orientation,
+            "score": score,
+            "sample_number": int(FOLDER_NAME[-6:])
+        }
+        xyz_tmp = transformMatrix_orb2rs @ np.array([x, y, z, 1])
+        xyz = transformMatrix_base2orb @ xyz_tmp
+        if (z == 0.0):
+            print('point', i, '-', xyz, '- invalid depth')
+            cv2.circle(rgb_img, (u, v), 5, (0, 0, 255), -1)
+            cv2.putText(rgb_img, str(i), (u-5, v-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+            tmpDict.update({
+                "comment": 'invalid depth'
+            })
+        elif (xyz[0] > 0.7):
+            print('point', i, '-', xyz, '- unreachable x')
+            cv2.circle(rgb_img, (u, v), 5, (255, 0, 0), -1)
+            cv2.putText(rgb_img, str(i), (u-5, v-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
+            tmpDict.update({
+                "comment": 'unreachable x'
+            })
+        else:
+            print('point', i, '-', xyz)
+            cv2.circle(rgb_img, (u, v), 5, (0, 255, 0), -1)
+            cv2.putText(rgb_img, str(i), (u-5, v-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            tmpDict.update({
+                "comment": ''
+            })
+        mergedJsonData.append(tmpDict)
+    with open(mergedFile, 'w') as f:
+        json.dump(mergedJsonData, f, indent=4)
+    cv2.imwrite(f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/test.png", rgb_img)
 
 
 # =========================
@@ -148,7 +225,7 @@ def trigger_callback(msg):
         return
 
     if FOLDER_NAME is None:
-        rospy.logwarn('Trigger received but FOLDER_NAME not set!')
+        rospy.logwarn('Trigger received, but FOLDER_NAME not set!')
         return
 
     rospy.loginfo(f'Processing {FOLDER_NAME}')
@@ -160,10 +237,31 @@ def trigger_callback(msg):
         copy_result_back()
         rospy.loginfo('Done.')
         rospy.loginfo('Starting result transformation...')
-        read_goal_coordinates()
+        # read_goal_coordinates()
+        fill_merged_json()
 
     except Exception as e:
         rospy.logerr(f'Error: {e}')
+
+
+def newJson_callback(msg):
+    global FOLDER_NAME
+    global MERGED_NAME
+
+    if not msg.data:
+        return
+    
+    if FOLDER_NAME is None:
+        rospy.logwarn('Trigger for new .json file received, but FOLDER_NAME not set!')
+        return
+    
+    firstNumber = int(FOLDER_NAME[-6:])
+    MERGED_NAME = f'{FOLDER_NAME}-{(firstNumber+2):06d}'
+    
+    rospy.loginfo(f'Creating new merged .json file {MERGED_NAME}')
+
+    cmd = f'touch {FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
+    run_cmd(cmd)
 
 
 # =========================
@@ -176,6 +274,7 @@ if __name__ == '__main__':
 
     rospy.Subscriber('/cedirnet/folder_name', String, folder_callback)
     rospy.Subscriber('/cedirnet/trigger', Bool, trigger_callback)
+    rospy.Subscriber('/cedirnet/new_json', Bool, newJson_callback)
 
     rospy.loginfo('Docker bridge node ready.')
 

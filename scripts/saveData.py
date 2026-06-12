@@ -51,8 +51,8 @@ class dataRecorder:
         rospy.loginfo('waiting for camera_info message...')
         # self.camera_info = rospy.wait_for_message('/rgbd/rgb/camera_info', CameraInfo, timeout=10)
         self.camera_info = rospy.wait_for_message('/camera/color/camera_info', CameraInfo, timeout=10)
-        rospy.loginfo('waiting for points message...')
-        self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=20)
+        # rospy.loginfo('waiting for points message...')
+        # self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=20)
 
         self.base_dir = Path('/talos_ws/dataForCedirnet')
         # self.base_dir = Path('/home/pal/docker_anamarija/dataForCedirnet')
@@ -243,14 +243,14 @@ class dataRecorder:
         # --------------------
         # point_cloud.ply
         # --------------------
-        points = np.array(
-            list(pc2.read_points(self.points_msg, field_names=('x', 'y', 'z'), skip_nans=True)),
-            dtype=np.float32
-        )
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-        save_path = self.new_folder / 'point_cloud.ply'
-        o3d.io.write_point_cloud(str(save_path), pcd)
+        # points = np.array(
+        #     list(pc2.read_points(self.points_msg, field_names=('x', 'y', 'z'), skip_nans=True)),
+        #     dtype=np.float32
+        # )
+        # pcd = o3d.geometry.PointCloud()
+        # pcd.points = o3d.utility.Vector3dVector(points)
+        # save_path = self.new_folder / 'point_cloud.ply'
+        # o3d.io.write_point_cloud(str(save_path), pcd)
 
         # --------------------
         # requested_model.json
@@ -265,10 +265,6 @@ class dataRecorder:
         save_path = self.new_folder / 'requested_model.json'
         with open(save_path, 'w') as f:
             json.dump(data, f, indent=4)
-
-        self.cedirnet_trigger_pub.publish(True)
-
-        rospy.loginfo('Data recording finished.')
 
         # --------------------
         # depth_image.jpg
@@ -300,6 +296,9 @@ class dataRecorder:
         save_path = self.new_folder / 'confidence_map.tiff'
         confidence_map.save(save_path)
         # resize 640x480 to 854x480 (107 on each side)
+
+        self.cedirnet_trigger_pub.publish(True)
+        rospy.loginfo('Data recording finished.')
 
 
 if __name__ == '__main__':
