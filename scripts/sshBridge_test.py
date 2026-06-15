@@ -136,6 +136,8 @@ def read_goal_coordinates():
     finished_pub.publish(msgBool)
 
 def fill_merged_json():
+    if MERGED_NAME is None:
+        raise RuntimeError('MERGED_NAME is None')
     mergedFile = f'{FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
     with open(mergedFile, 'r') as f:
         mergedJsonData = json.load(f)
