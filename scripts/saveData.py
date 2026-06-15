@@ -188,8 +188,8 @@ class dataRecorder:
         # --------------------
         data = {
             "image_resolution": {
-                # "width": self.camera_info.width,
-                "width": self.camera_info.width+214,
+                "width": self.camera_info.width,
+                # "width": self.camera_info.width+214,
                 "height": self.camera_info.height
             },
             "focal_lengths_in_pixels": {
@@ -238,7 +238,8 @@ class dataRecorder:
         # padded_img = cv2.copyMakeBorder(cv_img, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         padded_img = cv2.copyMakeBorder(cv_img, top=381, bottom=381, left=784, right=784, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         save_path = self.new_folder / 'image_left.png'
-        cv2.imwrite(str(save_path), padded_img)
+        # cv2.imwrite(str(save_path), padded_img)
+        cv2.imwrite(str(save_path), cv_img)
 
         # --------------------
         # point_cloud.ply
@@ -286,7 +287,8 @@ class dataRecorder:
         # padded_depth = cv2.copyMakeBorder(depth, top=0, bottom=0, left=107, right=107, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         padded_depth = cv2.copyMakeBorder(depth, top=381, bottom=381, left=784, right=784, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
         save_path = self.new_folder / 'depth_map.tiff'
-        cv2.imwrite(save_path, padded_depth)
+        # cv2.imwrite(save_path, padded_depth)
+        cv2.imwrite(save_path, depth)
 
         # --------------------
         # confidence_map.tiff
