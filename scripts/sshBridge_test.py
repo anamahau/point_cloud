@@ -9,7 +9,7 @@ import subprocess
 import numpy as np
 import tf.transformations as tft
 from tf_reader import getTfTransform
-from std_msgs.msg import String, Bool
+from std_msgs.msg import String, Bool, Int32
 from geometry_msgs.msg import PoseStamped
 
 
@@ -20,8 +20,8 @@ REMOTE_PATH = '/home/anamarija/cedirnet-dev/tools/unfolding_evaluation_ral2025/g
 
 FOLDER_NAME = None
 # FOLDER_NAME = 'sample_000011'
-FOLDER_PATH = '/talos_ws/dataForCedirnet'
-# FOLDER_PATH = '/home/pal/docker_anamarija/dataForCedirnet'
+# FOLDER_PATH = '/talos_ws/dataForCedirnet'
+FOLDER_PATH = '/home/pal/docker_anamarija/dataForCedirnet'
 MERGED_NAME = None
 
 
@@ -135,13 +135,31 @@ def read_goal_coordinates():
     msgBool.data = True
     finished_pub.publish(msgBool)
 
-def fill_merged_json():
+def fill_merged_json(msgNumber):
+    global MERGED_NAME
+    print('Hello from fill_merged_json function')
+    print(f'msgNumber is {msgNumber}')
+    if (msgNumber == 1):
+        # if FOLDER_NAME is None:
+        #     rospy.logwarn('Trigger for new .json file received, but FOLDER_NAME not set!')
+        #     return
+        firstNumber = int(FOLDER_NAME[-6:])
+        MERGED_NAME = f'{FOLDER_NAME}-{(firstNumber+2):06d}'
+        rospy.loginfo(f'Creating new merged .json file {MERGED_NAME}.json')
+        path = f'{FOLDER_PATH}/../mergedSamples/{MERGED_NAME}.json'
+        cmd = f'touch {path}'
+        run_cmd(cmd)
+        with open(path, 'w') as f:
+            json.dump([], f)
+
     if MERGED_NAME is None:
         raise RuntimeError('MERGED_NAME is None')
-    mergedFile = f'{FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
+    mergedFile = f'{FOLDER_PATH}/../mergedSamples/{MERGED_NAME}.json'
     with open(mergedFile, 'r') as f:
         mergedJsonData = json.load(f)
-    depth_img = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff')
+    depth_img = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff', cv2.IMREAD_UNCHANGED)
+    if depth_img is None:
+        raise RuntimeError(f'Failed to read {depth_path}')
     rgb_img = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png')
     file = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
     with open(file, 'r') as f:
@@ -173,12 +191,16 @@ def fill_merged_json():
         orientation = grasp["rotation_euler_xyz_in_radians"]
         tmpDict = {
             "position_in_meters": {
-                "x": x,
-                "y": y,
-                "z": z
+                "x": float(x),
+                "y": float(y),
+                "z": float(z)
             },
-            "rotation_euler_xyz_in_radians": orientation,
-            "score": score,
+            "rotation_euler_xyz_in_radians": {
+                "roll": float(orientation["roll"]),
+                "pitch": float(orientation["pitch"]),
+                "yaw": float(orientation["yaw"])
+            },
+            "score": float(score),
             "sample_number": int(FOLDER_NAME[-6:])
         }
         xyz_tmp = transformMatrix_orb2rs @ np.array([x, y, z, 1])
@@ -208,6 +230,10 @@ def fill_merged_json():
     with open(mergedFile, 'w') as f:
         json.dump(mergedJsonData, f, indent=4)
     cv2.imwrite(f"{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/test.png", rgb_img)
+    finished_pub = rospy.Publisher('/cedirnet/finished', Bool, queue_size=10)
+    # msgBool = Bool()
+    # msgBool.data = True
+    finished_pub.publish(True)
 
 
 # =========================
@@ -240,7 +266,7 @@ def trigger_callback(msg):
         rospy.loginfo('Done.')
         rospy.loginfo('Starting result transformation...')
         # read_goal_coordinates()
-        fill_merged_json()
+        fill_merged_json(msg.data)
 
     except Exception as e:
         rospy.logerr(f'Error: {e}')
@@ -260,10 +286,13 @@ def newJson_callback(msg):
     firstNumber = int(FOLDER_NAME[-6:])
     MERGED_NAME = f'{FOLDER_NAME}-{(firstNumber+2):06d}'
     
-    rospy.loginfo(f'Creating new merged .json file {MERGED_NAME}')
+    rospy.loginfo(f'Creating new merged .json file {MERGED_NAME}.json')
 
-    cmd = f'touch {FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
+    path = f'{FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
+    cmd = f'touch {path}'
     run_cmd(cmd)
+    with open(path, 'w') as f:
+        json.dump({}, f)
 
 
 # =========================
@@ -275,7 +304,7 @@ if __name__ == '__main__':
     rospy.init_node('dockerBridge_node', anonymous=True)
 
     rospy.Subscriber('/cedirnet/folder_name', String, folder_callback)
-    rospy.Subscriber('/cedirnet/trigger', Bool, trigger_callback)
+    rospy.Subscriber('/cedirnet/trigger', Int32, trigger_callback)
     rospy.Subscriber('/cedirnet/new_json', Bool, newJson_callback)
 
     rospy.loginfo('Docker bridge node ready.')

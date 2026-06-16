@@ -14,7 +14,7 @@ from PIL import Image as ImagePIL
 from pathlib import Path
 from cv_bridge import CvBridge
 from tf_reader import getTfTransform
-from std_msgs.msg import String, Bool
+from std_msgs.msg import String, Bool, Int32
 from sensor_msgs.msg import JointState, Image, PointCloud2, CameraInfo
 
 
@@ -25,20 +25,21 @@ class dataRecorder:
         rospy.init_node('data_recorder')
 
         self.folder_name_pub = rospy.Publisher('/cedirnet/folder_name', String, queue_size=10)
-        self.cedirnet_trigger_pub = rospy.Publisher('/cedirnet/trigger', Bool, queue_size=10)
+        self.cedirnet_trigger_pub = rospy.Publisher('/cedirnet/trigger', Int32, queue_size=10)
 
         self.bridge = CvBridge()
 
-        rospy.Subscriber('/data_recorder/trigger', Bool, self.trigger_callback)
+        rospy.Subscriber('/data_recorder/trigger', Int32, self.trigger_callback)
 
 
     def trigger_callback(self, msg):
         if msg.data:
             rospy.loginfo('Trigger received, running data recording...')
-            self.save()
+            print('msg.data:', msg.data)
+            self.save(msg.data)
     
 
-    def save(self):
+    def save(self, msgNumber):
 
         rospy.loginfo('waiting for joint_states message...')
         self.joint_states = rospy.wait_for_message('/joint_states', JointState, timeout=10)
@@ -54,8 +55,8 @@ class dataRecorder:
         # rospy.loginfo('waiting for points message...')
         # self.points_msg = rospy.wait_for_message('/rgbd/depth/points', PointCloud2, timeout=20)
 
-        self.base_dir = Path('/talos_ws/dataForCedirnet')
-        # self.base_dir = Path('/home/pal/docker_anamarija/dataForCedirnet')
+        # self.base_dir = Path('/talos_ws/dataForCedirnet')
+        self.base_dir = Path('/home/pal/docker_anamarija/dataForCedirnet')
         existing = sorted(self.base_dir.glob('sample_*'))
         next_idx = len(existing)
         subfolder = Path('observation_start')
@@ -299,7 +300,7 @@ class dataRecorder:
         confidence_map.save(save_path)
         # resize 640x480 to 854x480 (107 on each side)
 
-        self.cedirnet_trigger_pub.publish(True)
+        self.cedirnet_trigger_pub.publish(msgNumber)
         rospy.loginfo('Data recording finished.')
 
 
