@@ -234,6 +234,29 @@ def fill_merged_json(msgNumber):
     # msgBool = Bool()
     # msgBool.data = True
     finished_pub.publish(True)
+    if (msgNumber == 3):
+        read_merged_json()
+
+def read_merged_json():
+    mergedFile = f'{FOLDER_PATH}/../mergedSamples/{MERGED_NAME}.json'
+    with open(mergedFile, 'r') as f:
+        mergedJsonData = json.load(f)
+    best_grasp = max(mergedJsonData, key=lambda x: x["score"])
+    pos = best_grasp["position_in_meters"]
+    rot = best_grasp["rotation_euler_xyz_in_radians"]
+    msg = PoseStamped()
+    # msg.header.stamp = rospy.Time.now()
+    # msg.header.frame_id = 'odom'
+    msg.pose.position.x = pos["x"]
+    msg.pose.position.y = pos["y"]
+    msg.pose.position.z = pos["z"]
+    quat = tft.quaternion_from_euler(rot["roll"], rot["pitch"], rot["yaw"])
+    msg.pose.orientation.x = quat[0]
+    msg.pose.orientation.y = quat[1]
+    msg.pose.orientation.z = quat[2]
+    msg.pose.orientation.w = quat[3]
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub.publish(msg)
 
 
 # =========================
@@ -272,27 +295,27 @@ def trigger_callback(msg):
         rospy.logerr(f'Error: {e}')
 
 
-def newJson_callback(msg):
-    global FOLDER_NAME
-    global MERGED_NAME
+# def newJson_callback(msg):
+#     global FOLDER_NAME
+#     global MERGED_NAME
 
-    if not msg.data:
-        return
+#     if not msg.data:
+#         return
     
-    if FOLDER_NAME is None:
-        rospy.logwarn('Trigger for new .json file received, but FOLDER_NAME not set!')
-        return
+#     if FOLDER_NAME is None:
+#         rospy.logwarn('Trigger for new .json file received, but FOLDER_NAME not set!')
+#         return
     
-    firstNumber = int(FOLDER_NAME[-6:])
-    MERGED_NAME = f'{FOLDER_NAME}-{(firstNumber+2):06d}'
+#     firstNumber = int(FOLDER_NAME[-6:])
+#     MERGED_NAME = f'{FOLDER_NAME}-{(firstNumber+2):06d}'
     
-    rospy.loginfo(f'Creating new merged .json file {MERGED_NAME}.json')
+#     rospy.loginfo(f'Creating new merged .json file {MERGED_NAME}.json')
 
-    path = f'{FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
-    cmd = f'touch {path}'
-    run_cmd(cmd)
-    with open(path, 'w') as f:
-        json.dump({}, f)
+#     path = f'{FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
+#     cmd = f'touch {path}'
+#     run_cmd(cmd)
+#     with open(path, 'w') as f:
+#         json.dump({}, f)
 
 
 # =========================
@@ -305,7 +328,7 @@ if __name__ == '__main__':
 
     rospy.Subscriber('/cedirnet/folder_name', String, folder_callback)
     rospy.Subscriber('/cedirnet/trigger', Int32, trigger_callback)
-    rospy.Subscriber('/cedirnet/new_json', Bool, newJson_callback)
+    # rospy.Subscriber('/cedirnet/new_json', Bool, newJson_callback)
 
     rospy.loginfo('Docker bridge node ready.')
 
