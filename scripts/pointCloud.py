@@ -17,7 +17,7 @@ from point_cloud.msg import highLowPoint
 from std_msgs.msg import Bool, Int32, Float32MultiArray, Float32
 from geometry_msgs.msg import Polygon, Point32
 
-from tf_reader import getTfTransform
+from tf_reader import getTfTransform, init_tf
 
 
 def save_point_cloud_plot(o3d_pc, output_path='point_cloud.png',
@@ -271,6 +271,7 @@ def PCanalysis(iteration):
 if __name__ == '__main__':
 
     rospy.init_node('pointCloud', anonymous=True)
+    init_tf()
     pub_old = rospy.Publisher('/highLowPCpoints', highLowPoint, queue_size=1, latch=True)
 
     rospy.Subscriber('/PCrequest', Int32, trigger_cb)

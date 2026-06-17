@@ -58,27 +58,52 @@ def quaternion2rotationMatrix(transform):
     return matrix
 
 
-def getTfTransform(firstLink, secondLink, returnMatrix=True):
-    tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
-    rospy.sleep(0.5)
-    current_transform = tf_buffer.lookup_transform(
-        firstLink,
-        secondLink,
-        rospy.Time(0),
-        rospy.Duration(1.0)# ,
-        # rospy.Duration(1.0)
+tf_buffer = None
+tf_listener = None
+
+def init_tf():
+    global tf_buffer, tf_listener
+    tf_buffer = tf2_ros.Buffer(
+        cache_time=rospy.Duration(30.0)
     )
-    translation = current_transform.transform.translation
-    rotation = current_transform.transform.rotation
-    if returnMatrix:
-        return quaternion2rotationMatrix(current_transform.transform)
-    return [[translation.x, translation.y, translation.z], [rotation.x, rotation.y, rotation.z, rotation.w]]
+    tf_listener = tf2_ros.TransformListener(tf_buffer)
+    rospy.sleep(1.0)
+
+
+def getTfTransform(firstLink, secondLink, returnMatrix=True):
+    global tf_buffer
+
+    try:
+        current_transform = tf_buffer.lookup_transform(
+            firstLink,
+            secondLink,
+            rospy.Time(0),
+            rospy.Duration(1.0)
+        )
+        translation = current_transform.transform.translation
+        rotation = current_transform.transform.rotation
+        if returnMatrix:
+            return quaternion2rotationMatrix(current_transform.transform)
+        return [[translation.x, translation.y, translation.z], [rotation.x, rotation.y, rotation.z, rotation.w]]
+    except (
+        tf2_ros.LookupException,
+        tf2_ros.ConnectivityException,
+        tf2_ros.ExtrapolationException
+    ) as e:
+        rospy.logwarn(
+            "TF lookup failed (%s -> %s): %s",
+            firstLink,
+            secondLink,
+            str(e)
+        )
+        return None
 
 
 if __name__ == '__main__':
 
     rospy.init_node('tf_reader', anonymous=True)
+
+    init_tf()
 
     # transform = getTfTransform('head_2_link', 'odom')
     # print(transform)

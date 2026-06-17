@@ -8,7 +8,7 @@ import rospy
 import subprocess
 import numpy as np
 import tf.transformations as tft
-from tf_reader import getTfTransform
+from tf_reader import getTfTransform, init_tf
 from std_msgs.msg import String, Bool, Int32
 from geometry_msgs.msg import PoseStamped
 
@@ -326,8 +326,10 @@ if __name__ == '__main__':
 
     rospy.init_node('dockerBridge_node', anonymous=True)
 
+    init_tf()
+
     rospy.Subscriber('/cedirnet/folder_name', String, folder_callback)
-    rospy.Subscriber('/cedirnet/trigger', Int32, trigger_callback)
+    rospy.Subscriber('/cedirnet/trigger2', Int32, trigger_callback)
     # rospy.Subscriber('/cedirnet/new_json', Bool, newJson_callback)
 
     rospy.loginfo('Docker bridge node ready.')

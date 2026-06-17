@@ -13,7 +13,7 @@ import sensor_msgs.point_cloud2 as pc2
 from PIL import Image as ImagePIL
 from pathlib import Path
 from cv_bridge import CvBridge
-from tf_reader import getTfTransform
+from tf_reader import getTfTransform, init_tf
 from std_msgs.msg import String, Bool, Int32
 from sensor_msgs.msg import JointState, Image, PointCloud2, CameraInfo
 
@@ -24,12 +24,14 @@ class dataRecorder:
         
         rospy.init_node('data_recorder')
 
+        init_tf()
+
         self.folder_name_pub = rospy.Publisher('/cedirnet/folder_name', String, queue_size=10)
-        self.cedirnet_trigger_pub = rospy.Publisher('/cedirnet/trigger', Int32, queue_size=10)
+        self.cedirnet_trigger_pub = rospy.Publisher('/cedirnet/trigger2', Int32, queue_size=10)
 
         self.bridge = CvBridge()
 
-        rospy.Subscriber('/data_recorder/trigger', Int32, self.trigger_callback)
+        rospy.Subscriber('/data_recorder/trigger2', Int32, self.trigger_callback)
 
 
     def trigger_callback(self, msg):
@@ -82,6 +84,9 @@ class dataRecorder:
         # --------------------
         # tf = getTfTransform('base_link', 'arm_left_1_link', returnMatrix=False)
         tf = getTfTransform('odom', 'arm_left_1_link', returnMatrix=False)
+        if tf is None:
+            rospy.logerr('Could not obtain odom -> arm_left_1_link transform')
+            return
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -106,6 +111,9 @@ class dataRecorder:
         # --------------------
         # tf = getTfTransform('base_link', 'gripper_left_base_link', returnMatrix=False)
         tf = getTfTransform('odom', 'gripper_left_base_link', returnMatrix=False)
+        if tf is None:
+            rospy.logerr('Could not obtain odom -> gripper_left_base_link transform')
+            return
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -141,6 +149,9 @@ class dataRecorder:
         # --------------------
         # tf = getTfTransform('base_link', 'arm_right_1_link', returnMatrix=False)
         tf = getTfTransform('odom', 'arm_right_1_link', returnMatrix=False)
+        if tf is None:
+            rospy.logerr('Could not obtain odom -> arm_right_1_link transform')
+            return
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -165,6 +176,9 @@ class dataRecorder:
         # --------------------
         # tf = getTfTransform('base_link', 'gripper_right_base_link', returnMatrix=False)
         tf = getTfTransform('odom', 'gripper_right_base_link', returnMatrix=False)
+        if tf is None:
+            rospy.logerr('Could not obtain odom -> gripper_right_base_link transform')
+            return
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -211,6 +225,9 @@ class dataRecorder:
         # --------------------
         # tf = getTfTransform('base_link', 'rgbd_depth_optical_frame', returnMatrix=False)
         tf = getTfTransform('odom', 'rgbd_depth_optical_frame', returnMatrix=False)
+        if tf is None:
+            rospy.logerr('Could not obtain odom -> rgbd_depth_optical_frame transform')
+            return
         tf_T = tf[0]
         tf_Q = tf[1]
         roll, pitch, yaw = tft.euler_from_quaternion(tf_Q)
@@ -258,9 +275,9 @@ class dataRecorder:
         # requested_model.json
         # --------------------
         data = {
-            "requested_model": "v2"
+            # "requested_model": "v2"
             # "requested_model": "v2+seg"
-            # "requested_model": "v2+seg+rand_bg"
+            "requested_model": "v2+seg+rand_bg"
             # "requested_model": "v2+seg+rand_bg+cropping"
             # "requested_model": "v2+seg+rand_bg+cropping+score"
         }
