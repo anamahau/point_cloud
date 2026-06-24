@@ -11,6 +11,7 @@ import tf.transformations as tft
 from tf_reader import getTfTransform, init_tf
 from std_msgs.msg import String, Bool, Int32
 from geometry_msgs.msg import PoseStamped
+from panorama_image import stitch_three
 
 
 CONTAINER_NAME = 'talos_clothes'
@@ -259,6 +260,191 @@ def read_merged_json():
     pub.publish(msg)
 
 
+def generate1imageSample():
+    global FOLDER_NAME
+
+    num = int(FOLDER_NAME[-6:]) - 2
+    FOLDER_NAME = f'sample_{(num+1):06d}_01'
+
+    shutil.copytree(f'{FOLDER_PATH}/sample_{(num+1):06d}', f'{FOLDER_PATH}/{FOLDER_NAME}')
+
+    cameraJson = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
+    with open(cameraJson, 'r') as f:
+        data = json.load(f)
+    data["image_resolution"]["width"] = 1024
+    data["image_resolution"]["height"] = 1024
+    with open(cameraJson, 'w') as f:
+        json.dump(data, f, indent=4)
+
+    modelJson = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/requested_model.json'
+    with open(modelJson, 'r') as f:
+        data = json.load(f)
+    data["requested_model"] = "v2+seg+rand_bg+cropping_talos"
+    with open(modelJson, 'w') as f:
+        json.dump(data, f, indent=4)
+
+    rgb = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png')
+    depth = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff', cv2.IMREAD_UNCHANGED)
+
+    rgb_small = cv2.resize(rgb, (480, 360))
+    rgb_padded = cv2.copyMakeBorder(
+        rgb_small,
+        top=100,
+        bottom=564,
+        left=272,
+        right=272,
+        borderType=cv2.BORDER_CONSTANT,
+        value=(0, 0, 0)
+    )
+
+    depth_small = cv2.resize(depth, (480, 360))
+    depth_padded = cv2.copyMakeBorder(
+        depth_small,
+        top=100,
+        bottom=564,
+        left=272,
+        right=272,
+        borderType=cv2.BORDER_CONSTANT,
+        value=0
+    )
+    
+    cv2.imwrite(
+        f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png',
+        rgb_padded
+    )
+    cv2.imwrite(
+        f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff',
+        depth_padded
+    )
+
+    shutil.rmtree(f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/')
+
+    rospy.loginfo(f'Processing {FOLDER_NAME}')
+    copy_folder_from_container()
+    wait_for_result()
+    copy_result_back()
+    rospy.loginfo('Done')
+
+    newSampleResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
+    with open(newSampleResultJson, 'r') as f:
+        newSampleJsonData = json.load(f)
+    best_grasp = max(newSampleJsonData, key=lambda x: x["score"])
+    pos = best_grasp["position_in_meters"]
+    rot = best_grasp["rotation_euler_xyz_in_radians"]
+    msg = PoseStamped()
+    msg.pose.position.x = pos["x"]
+    msg.pose.position.y = pos["y"]
+    msg.pose.position.z = pos["z"]
+    quat = tft.quaternion_from_euler(rot["roll"], rot["pitch"], rot["yaw"])
+    msg.pose.orientation.x = quat[0]
+    msg.pose.orientation.y = quat[1]
+    msg.pose.orientation.z = quat[2]
+    msg.pose.orientation.w = quat[3]
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub.publish(msg)
+
+
+def generatePanoramaSample():
+    global FOLDER_NAME
+
+    images = []
+    depths = []
+
+    num = int(FOLDER_NAME[-6:]) - 2
+
+    for i in range(3):
+        image = cv2.imread(f'{FOLDER_PATH}/sample_{(num+i):06d}/observation_start/image_left.png')
+        images.append(image)
+        depth = cv2.imread(f'{FOLDER_PATH}/sample_{(num+i):06d}/observation_start/depth_map.tiff', cv2.IMREAD_UNCHANGED)
+        depths.append(depth)
+
+    img1 = images[0]
+    img2 = images[1]
+    img3 = images[2]
+    depth1 = depths[0]
+    depth2 = depths[1]
+    depth3 = depths[2]
+
+    mergedSampleName = f'sample_{(num):06d}_{(num+2):06d}'
+
+    rgb_panorama, depth_panorama = stitch_three(img1, img2, img3, depth1, depth2, depth3)
+
+    shutil.copytree(f'{FOLDER_PATH}/sample_{(num+1):06d}', f'{FOLDER_PATH}/{mergedSampleName}')
+
+    cameraJson = f'{FOLDER_PATH}/{mergedSampleName}/observation_start/camera_intrinsics.json'
+    with open(cameraJson, 'r') as f:
+        data = json.load(f)
+    data["image_resolution"]["width"] = 1024
+    data["image_resolution"]["height"] = 1024
+    with open(cameraJson, 'w') as f:
+        json.dump(data, f, indent=4)
+
+    modelJson = f'{FOLDER_PATH}/{mergedSampleName}/observation_start/requested_model.json'
+    with open(modelJson, 'r') as f:
+        data = json.load(f)
+    data["requested_model"] = "v2+seg+rand_bg+cropping_talos"
+    with open(modelJson, 'w') as f:
+        json.dump(data, f, indent=4)
+
+    rgb_small = cv2.resize(rgb_panorama, (768, 768))
+    rgb_padded = cv2.copyMakeBorder(
+        rgb_small,
+        top=0,
+        bottom=256,
+        left=128,
+        right=128,
+        borderType=cv2.BORDER_CONSTANT,
+        value=(0, 0, 0)
+    )
+
+    depth_small = cv2.resize(depth_panorama, (768, 768))
+    depth_padded = cv2.copyMakeBorder(
+        depth_small,
+        top=0,
+        bottom=256,
+        left=128,
+        right=128,
+        borderType=cv2.BORDER_CONSTANT,
+        value=0
+    )
+
+    cv2.imwrite(
+        f'{FOLDER_PATH}/{mergedSampleName}/observation_start/image_left.png',
+        rgb_padded
+    )
+    cv2.imwrite(
+        f'{FOLDER_PATH}/{mergedSampleName}/observation_start/depth_map.tiff',
+        depth_padded
+    )
+
+    shutil.rmtree(f'{FOLDER_PATH}/{mergedSampleName}/grasp_predicted/')
+
+    FOLDER_NAME = mergedSampleName
+    rospy.loginfo(f'Processing {FOLDER_NAME}')
+    copy_folder_from_container()
+    wait_for_result()
+    copy_result_back()
+    rospy.loginfo('Done')
+
+    panoramaResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
+    with open(panoramaResultJson, 'r') as f:
+        panoramaJsonData = json.load(f)
+    best_grasp = max(panoramaJsonData, key=lambda x: x["score"])
+    pos = best_grasp["position_in_meters"]
+    rot = best_grasp["rotation_euler_xyz_in_radians"]
+    msg = PoseStamped()
+    msg.pose.position.x = pos["x"]
+    msg.pose.position.y = pos["y"]
+    msg.pose.position.z = pos["z"]
+    quat = tft.quaternion_from_euler(rot["roll"], rot["pitch"], rot["yaw"])
+    msg.pose.orientation.x = quat[0]
+    msg.pose.orientation.y = quat[1]
+    msg.pose.orientation.z = quat[2]
+    msg.pose.orientation.w = quat[3]
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub.publish(msg)
+
+
 # =========================
 # ROS CALLBACKS
 # =========================
@@ -286,36 +472,16 @@ def trigger_callback(msg):
         # copy_folder_to_container()
         wait_for_result()
         copy_result_back()
-        rospy.loginfo('Done.')
-        rospy.loginfo('Starting result transformation...')
+        rospy.loginfo('Done')
         # read_goal_coordinates()
-        fill_merged_json(msg.data)
+        # fill_merged_json(msg.data)
+        if (msg.data == 3):
+            rospy.loginfo('Starting result transformation...')
+            generatePanoramaSample()
+            # generate1imageSample()
 
     except Exception as e:
         rospy.logerr(f'Error: {e}')
-
-
-# def newJson_callback(msg):
-#     global FOLDER_NAME
-#     global MERGED_NAME
-
-#     if not msg.data:
-#         return
-    
-#     if FOLDER_NAME is None:
-#         rospy.logwarn('Trigger for new .json file received, but FOLDER_NAME not set!')
-#         return
-    
-#     firstNumber = int(FOLDER_NAME[-6:])
-#     MERGED_NAME = f'{FOLDER_NAME}-{(firstNumber+2):06d}'
-    
-#     rospy.loginfo(f'Creating new merged .json file {MERGED_NAME}.json')
-
-#     path = f'{FOLDER_PATH}/mergedSamples/{MERGED_NAME}.json'
-#     cmd = f'touch {path}'
-#     run_cmd(cmd)
-#     with open(path, 'w') as f:
-#         json.dump({}, f)
 
 
 # =========================
@@ -330,7 +496,6 @@ if __name__ == '__main__':
 
     rospy.Subscriber('/cedirnet/folder_name', String, folder_callback)
     rospy.Subscriber('/cedirnet/trigger2', Int32, trigger_callback)
-    # rospy.Subscriber('/cedirnet/new_json', Bool, newJson_callback)
 
     rospy.loginfo('Docker bridge node ready.')
 
