@@ -32,8 +32,10 @@ def jointsMove(joints):
 
 def cedirnetMove():
     headPositions = [
-        [0.28, 0.0],
-        [0.53, 0.0],
+        # [0.28, 0.0],
+        # [0.53, 0.0],
+        [0.38, 0.0],
+        [0.58, 0.0],
         [0.78, 0.0]
     ]
     

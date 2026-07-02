@@ -13,6 +13,7 @@ from tf_reader import getTfTransform, init_tf
 from std_msgs.msg import String, Bool, Int32
 from geometry_msgs.msg import PoseStamped
 from panorama_image import stitch_three
+from scipy.spatial.transform import Rotation
 
 
 CONTAINER_NAME = 'talos_clothes'
@@ -436,7 +437,8 @@ def generatePanoramaSample():
     v_final = best_grasp["v"]
     img2_shape = (480, 640)
     intrinsics_json_path = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
-    xyz_odom = panorama_pixel_to_world(u_final, v_final, img2_shape, depth_img2, intrinsics_json_path)
+    xyz_odom = panorama_pixel_to_world(u_final, v_final, img2_shape, depth2, intrinsics_json_path)
+    print('==== final point:', xyz_odom)
 
     # panoramaResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
     # with open(panoramaResultJson, 'r') as f:
@@ -503,6 +505,13 @@ def panorama_to_middle_pixel(u_final, v_final, img2_shape):
     region (i.e. it's actually on a side image / black padding, which
     would violate the "point is always in the middle image" assumption).
     """
+
+    MIDDLE_OFFSET_X = 192   # where img2 is pasted into the raw 1024x1024 canvas
+    MIDDLE_OFFSET_Y = 272
+    FINAL_SCALE     = 0.75  # 1024 -> 768 resize applied after stitching
+    FINAL_PAD_LEFT  = 128
+    FINAL_PAD_TOP   = 0
+
     h2, w2 = img2_shape[:2]  # expected 480, 640 for your raw camera resolution
 
     # 1. undo the final pad, then the 0.75 resize -> back to raw 1024x1024 canvas coords
@@ -524,6 +533,14 @@ def pixel_to_world(u2, v2, depth_img2, intrinsics_json_path):
     Same math as read_goal_coordinates() in sshBridge_test.py, applied to a
     single pixel in the *original* middle image (matches the intrinsics json).
     """
+
+    TRANSFORM_ORB2RS = np.array([
+        [ 0.9989575 , 0.04022338,  0.02158668, -0.00320142],
+        [-0.03988856, 0.99908041, -0.0157236 , -0.10964579],
+        [-0.02219929, 0.01484615,  0.99964333, -0.05616454],
+        [ 0.0       , 0.0       ,  0.0       ,  1.0       ]
+    ])
+
     with open(intrinsics_json_path, 'r') as f:
         data = json.load(f)
 
@@ -535,14 +552,26 @@ def pixel_to_world(u2, v2, depth_img2, intrinsics_json_path):
     u_int, v_int = int(round(u2)), int(round(v2))
     z = depth_img2[v_int, u_int]
 
+    print('z:', z)
+
+    print(u_int, v_int)
+    print(np.shape(depth_img2))
+
+    depth_norm = cv2.normalize(depth_img2, None, 0, 255, cv2.NORM_MINMAX)
+    depth_norm = depth_norm.astype(np.uint8)
+    cv2.circle(depth_norm, (u_int, v_int), 15, 255, -1)
+    cv2.circle(depth_norm, (u_int, v_int), 10, 0, -1)
+    cv2.circle(depth_norm, (u_int, v_int), 5, 255, -1)
+    cv2.imwrite(f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/depth.png', depth_norm)
+
     if z == 0:
         raise ValueError(f'Invalid (zero) depth at pixel ({u_int}, {v_int})')
 
     x = (u_int - cx) * z / fx
     y = (v_int - cy) * z / fy
 
-    path = f'{FOLDER_PATH}/{sample}/observation_start/camera_pose_in_world.json'
-    transformMatrix_base2orb = load_transformation_matrix(path)
+    path = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_pose_in_world.json'
+    transform_base2orb = load_transformation_matrix(path)
     xyz_cam = TRANSFORM_ORB2RS @ np.array([x, y, z, 1.0])
     xyz_world = transform_base2orb @ xyz_cam
 
