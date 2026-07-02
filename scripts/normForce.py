@@ -26,42 +26,71 @@ class ArmsForceNormNode:
         )
 
         # Publishers
-        self.pub_right_norm = rospy.Publisher(
-            '/right_wrist_ft_norm',
+        self.pub_right_norm_force = rospy.Publisher(
+            '/right_wrist_ft_norm_force',
             Float64,
             queue_size=1
         )
 
-        self.pub_left_norm = rospy.Publisher(
-            '/left_wrist_ft_norm',
+        self.pub_left_norm_force = rospy.Publisher(
+            '/left_wrist_ft_norm_force',
             Float64,
             queue_size=1
         )
 
-    def compute_norm(self, force):
+        self.pub_right_norm_torque = rospy.Publisher(
+            '/right_wrist_ft_norm_torque',
+            Float64,
+            queue_size=1
+        )
+
+        self.pub_left_norm_torque = rospy.Publisher(
+            '/left_wrist_ft_norm_torque',
+            Float64,
+            queue_size=1
+        )
+
+    def compute_norm_force(self, force):
         return math.sqrt(
             force.x ** 2 +
             force.y ** 2 +
             force.z ** 2
         )
+    
+    def compute_norm_torque(self, torque):
+        return math.sqrt(
+            torque.x ** 2 +
+            torque.y ** 2 +
+            torque.z ** 2
+        )
 
     def right_ft_callback(self, msg):
         f = msg.wrench.force
-        norm = self.compute_norm(f)
+        t = msg.wrench.torque
+        norm_force = self.compute_norm_force(f)
+        norm_torque = self.compute_norm_torque(t)
 
-        out = Float64()
-        out.data = norm
+        out_force = Float64()
+        out_torque = Float64()
+        out_force.data = norm_force
+        out_torque.data = norm_torque
 
-        self.pub_right_norm.publish(out)
+        self.pub_right_norm_force.publish(out_force)
+        self.pub_right_norm_torque.publish(out_torque)
 
     def left_ft_callback(self, msg):
         f = msg.wrench.force
-        norm = self.compute_norm(f)
+        t = msg.wrench.torque
+        norm_force = self.compute_norm_force(f)
+        norm_torque = self.compute_norm_torque(t)
 
-        out = Float64()
-        out.data = norm
+        out_force = Float64()
+        out_torque = Float64()
+        out_force.data = norm_force
+        out_torque.data = norm_torque
 
-        self.pub_left_norm.publish(out)
+        self.pub_left_norm_force.publish(out_force)
+        self.pub_left_norm_torque.publish(out_torque)
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import cv2
 import json
 import time
 import rospy
+import shutil
 import subprocess
 import numpy as np
 import tf.transformations as tft
@@ -329,6 +330,7 @@ def generate1imageSample():
     with open(newSampleResultJson, 'r') as f:
         newSampleJsonData = json.load(f)
     best_grasp = max(newSampleJsonData, key=lambda x: x["score"])
+    print('best grasp:', best_grasp)
     pos = best_grasp["position_in_meters"]
     rot = best_grasp["rotation_euler_xyz_in_radians"]
     msg = PoseStamped()
@@ -340,7 +342,7 @@ def generate1imageSample():
     msg.pose.orientation.y = quat[1]
     msg.pose.orientation.z = quat[2]
     msg.pose.orientation.w = quat[3]
-    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10, latch=True)
     pub.publish(msg)
 
 
@@ -430,6 +432,7 @@ def generatePanoramaSample():
     with open(panoramaResultJson, 'r') as f:
         panoramaJsonData = json.load(f)
     best_grasp = max(panoramaJsonData, key=lambda x: x["score"])
+    print('best grasp:', best_grasp)
     pos = best_grasp["position_in_meters"]
     rot = best_grasp["rotation_euler_xyz_in_radians"]
     msg = PoseStamped()
@@ -441,8 +444,9 @@ def generatePanoramaSample():
     msg.pose.orientation.y = quat[1]
     msg.pose.orientation.z = quat[2]
     msg.pose.orientation.w = quat[3]
-    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10, latch=True)
     pub.publish(msg)
+    print('message published')
 
 
 # =========================
@@ -467,6 +471,8 @@ def trigger_callback(msg):
 
     rospy.loginfo(f'Processing {FOLDER_NAME}')
 
+    finished_pub = rospy.Publisher('/cedirnet/finished', Bool, queue_size=10)
+
     try:
         copy_folder_from_container()
         # copy_folder_to_container()
@@ -475,6 +481,7 @@ def trigger_callback(msg):
         rospy.loginfo('Done')
         # read_goal_coordinates()
         # fill_merged_json(msg.data)
+        finished_pub.publish(True)
         if (msg.data == 3):
             rospy.loginfo('Starting result transformation...')
             generatePanoramaSample()
