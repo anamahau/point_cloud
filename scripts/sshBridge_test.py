@@ -326,24 +326,24 @@ def generate1imageSample():
     copy_result_back()
     rospy.loginfo('Done')
 
-    newSampleResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
-    with open(newSampleResultJson, 'r') as f:
-        newSampleJsonData = json.load(f)
-    best_grasp = max(newSampleJsonData, key=lambda x: x["score"])
-    print('best grasp:', best_grasp)
-    pos = best_grasp["position_in_meters"]
-    rot = best_grasp["rotation_euler_xyz_in_radians"]
-    msg = PoseStamped()
-    msg.pose.position.x = pos["x"]
-    msg.pose.position.y = pos["y"]
-    msg.pose.position.z = pos["z"]
-    quat = tft.quaternion_from_euler(rot["roll"], rot["pitch"], rot["yaw"])
-    msg.pose.orientation.x = quat[0]
-    msg.pose.orientation.y = quat[1]
-    msg.pose.orientation.z = quat[2]
-    msg.pose.orientation.w = quat[3]
-    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10, latch=True)
-    pub.publish(msg)
+    # newSampleResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
+    # with open(newSampleResultJson, 'r') as f:
+    #     newSampleJsonData = json.load(f)
+    # best_grasp = max(newSampleJsonData, key=lambda x: x["score"])
+    # print('best grasp:', best_grasp)
+    # pos = best_grasp["position_in_meters"]
+    # rot = best_grasp["rotation_euler_xyz_in_radians"]
+    # msg = PoseStamped()
+    # msg.pose.position.x = pos["x"]
+    # msg.pose.position.y = pos["y"]
+    # msg.pose.position.z = pos["z"]
+    # quat = tft.quaternion_from_euler(rot["roll"], rot["pitch"], rot["yaw"])
+    # msg.pose.orientation.x = quat[0]
+    # msg.pose.orientation.y = quat[1]
+    # msg.pose.orientation.z = quat[2]
+    # msg.pose.orientation.w = quat[3]
+    # pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10, latch=True)
+    # pub.publish(msg)
 
 
 def generatePanoramaSample():
@@ -428,25 +428,164 @@ def generatePanoramaSample():
     copy_result_back()
     rospy.loginfo('Done')
 
-    panoramaResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
-    with open(panoramaResultJson, 'r') as f:
-        panoramaJsonData = json.load(f)
-    best_grasp = max(panoramaJsonData, key=lambda x: x["score"])
+    panoramaCoordinatesJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json'
+    with open(panoramaCoordinatesJson, 'r') as f:
+        coordinatesData = json.load(f)
+    best_grasp = max(coordinatesData, key=lambda x: x["score"])
+    u_final = best_grasp["u"]
+    v_final = best_grasp["v"]
+    img2_shape = (480, 640)
+    intrinsics_json_path = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
+    xyz_odom = panorama_pixel_to_world(u_final, v_final, img2_shape, depth_img2, intrinsics_json_path)
+
+    # panoramaResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
+    # with open(panoramaResultJson, 'r') as f:
+    #     panoramaJsonData = json.load(f)
+    # best_grasp = max(panoramaJsonData, key=lambda x: x["score"])
+    # print('best grasp:', best_grasp)
+    # pos = best_grasp["position_in_meters"]
+    # rot = best_grasp["rotation_euler_xyz_in_radians"]
+    # msg = PoseStamped()
+    # msg.pose.position.x = pos["x"]
+    # msg.pose.position.y = pos["y"]
+    # msg.pose.position.z = pos["z"]
+    # quat = tft.quaternion_from_euler(rot["roll"], rot["pitch"], rot["yaw"])
+    # msg.pose.orientation.x = quat[0]
+    # msg.pose.orientation.y = quat[1]
+    # msg.pose.orientation.z = quat[2]
+    # msg.pose.orientation.w = quat[3]
+    # pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10, latch=True)
+    # pub.publish(msg)
+    # print('message published')
+
+
+'''def coordinates2poseForNewSample(sample, depth):
+    path = f'{FOLDER_PATH}/{sample}/grasp_predicted/grasp_coordinates.json'
+    with open(path, 'r') as f:
+        coordinatesData = json.load(f)
+    best_grasp = max(coordinatesData, key=lambda x: x["score"])
     print('best grasp:', best_grasp)
-    pos = best_grasp["position_in_meters"]
-    rot = best_grasp["rotation_euler_xyz_in_radians"]
-    msg = PoseStamped()
-    msg.pose.position.x = pos["x"]
-    msg.pose.position.y = pos["y"]
-    msg.pose.position.z = pos["z"]
-    quat = tft.quaternion_from_euler(rot["roll"], rot["pitch"], rot["yaw"])
-    msg.pose.orientation.x = quat[0]
-    msg.pose.orientation.y = quat[1]
-    msg.pose.orientation.z = quat[2]
-    msg.pose.orientation.w = quat[3]
-    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10, latch=True)
-    pub.publish(msg)
-    print('message published')
+    path = f'{FOLDER_PATH}/{sample}/observation_start/camera_intrinsics.json'
+    with open(path, 'r') as f:
+        intrinsicsData = json.load(f)
+    u = best_grasp["u"]
+    v = best_grasp["v"]
+    z = depth[v, u]
+    u = u - 271
+    v = v - 203
+    path = f'{FOLDER_PATH}/{sample}/observation_start/camera_pose_in_world.json'
+    transformMatrix_base2orb = load_transformation_matrix(path)
+    transformMatrix_orb2rs = np.array([
+            [ 0.9989575 , 0.04022338,  0.02158668, -0.00320142],
+            [-0.03988856, 0.99908041, -0.0157236 , -0.10964579],
+            [-0.02219929, 0.01484615,  0.99964333, -0.05616454],
+            [ 0.0       , 0.0       ,  0.0       ,  1.0       ]
+        ])
+    fx = intrinsicsData["fx"]
+    fy = intrinsicsData["fy"]
+    cx = intrinsicsData["cx"]
+    cy = intrinsicsData["cy"]
+
+    if v < 360:
+        x = (u - cx) * z / fx
+        y = (v - cy) * z / fy
+        xyz_tmp = transformMatrix_orb2rs @ np.array([x, y, z, 1])
+        xyz = transformMatrix_base2orb @ xyz_tmp
+        print('best grasp point -', xyz)'''
+
+
+def panorama_to_middle_pixel(u_final, v_final, img2_shape):
+    """
+    Map a pixel picked on the *saved* panorama image back to the pixel
+    coordinates of the original, un-warped middle image (img2).
+
+    Returns (u2, v2) or None if the point falls outside the middle image
+    region (i.e. it's actually on a side image / black padding, which
+    would violate the "point is always in the middle image" assumption).
+    """
+    h2, w2 = img2_shape[:2]  # expected 480, 640 for your raw camera resolution
+
+    # 1. undo the final pad, then the 0.75 resize -> back to raw 1024x1024 canvas coords
+    u_canvas = (u_final - FINAL_PAD_LEFT) / FINAL_SCALE
+    v_canvas = (v_final - FINAL_PAD_TOP) / FINAL_SCALE
+
+    # 2. undo the paste offset of img2 into the canvas
+    u2 = u_canvas - MIDDLE_OFFSET_X
+    v2 = v_canvas - MIDDLE_OFFSET_Y
+
+    if not (0 <= u2 < w2 and 0 <= v2 < h2):
+        return None
+
+    return u2, v2
+
+
+def pixel_to_world(u2, v2, depth_img2, intrinsics_json_path):
+    """
+    Same math as read_goal_coordinates() in sshBridge_test.py, applied to a
+    single pixel in the *original* middle image (matches the intrinsics json).
+    """
+    with open(intrinsics_json_path, 'r') as f:
+        data = json.load(f)
+
+    fx = data['focal_lengths_in_pixels']['fx']
+    fy = data['focal_lengths_in_pixels']['fy']
+    cx = data['principal_point_in_pixels']['cx']
+    cy = data['principal_point_in_pixels']['cy']
+
+    u_int, v_int = int(round(u2)), int(round(v2))
+    z = depth_img2[v_int, u_int]
+
+    if z == 0:
+        raise ValueError(f'Invalid (zero) depth at pixel ({u_int}, {v_int})')
+
+    x = (u_int - cx) * z / fx
+    y = (v_int - cy) * z / fy
+
+    path = f'{FOLDER_PATH}/{sample}/observation_start/camera_pose_in_world.json'
+    transformMatrix_base2orb = load_transformation_matrix(path)
+    xyz_cam = TRANSFORM_ORB2RS @ np.array([x, y, z, 1.0])
+    xyz_world = transform_base2orb @ xyz_cam
+
+    return xyz_world[:3]
+
+
+def panorama_pixel_to_world(u_final, v_final, img2_shape, depth_img2, intrinsics_json_path):
+    """
+    Full pipeline: a pixel clicked on the generated panorama -> world (x, y, z).
+    Raises if the pixel doesn't land inside the middle-image region.
+    """
+    mapped = panorama_to_middle_pixel(u_final, v_final, img2_shape)
+    if mapped is None:
+        raise ValueError(
+            f'Pixel ({u_final}, {v_final}) is outside the middle image region '
+            'of the panorama - the single-image intrinsics/extrinsics '
+            'assumption does not hold for this point.'
+        )
+    u2, v2 = mapped
+    return pixel_to_world(u2, v2, depth_img2, intrinsics_json_path)
+
+
+def load_transformation_matrix(json_path):
+    with open(json_path, "r") as f:
+        data = json.load(f)
+
+    t = np.array([
+        data["position_in_meters"]["x"],
+        data["position_in_meters"]["y"],
+        data["position_in_meters"]["z"],
+    ])
+
+    roll = data["rotation_euler_xyz_in_radians"]["roll"]
+    pitch = data["rotation_euler_xyz_in_radians"]["pitch"]
+    yaw = data["rotation_euler_xyz_in_radians"]["yaw"]
+
+    R = Rotation.from_euler("xyz", [roll, pitch, yaw]).as_matrix()
+
+    T = np.eye(4)
+    T[:3, :3] = R
+    T[:3, 3] = t
+
+    return T
 
 
 # =========================
