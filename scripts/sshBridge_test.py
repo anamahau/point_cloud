@@ -435,10 +435,16 @@ def generatePanoramaSample():
     best_grasp = max(coordinatesData, key=lambda x: x["score"])
     u_final = best_grasp["u"]
     v_final = best_grasp["v"]
-    img2_shape = (480, 640)
-    intrinsics_json_path = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
-    xyz_odom = panorama_pixel_to_world(u_final, v_final, img2_shape, depth2, intrinsics_json_path)
-    print('==== final point:', xyz_odom)
+    rgb10 = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png')
+    depth10 = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff', cv2.IMREAD_UNCHANGED)
+    xyz_odom = coordinates2odom(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json', f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_pose_in_world.json', u_final, v_final, rgb10, depth10)
+    print('****************************************')
+    print(f'x: {xyz_odom[0]:.4f}, y: {xyz_odom[1]:.4f}, z: {xyz_odom[2]:.4f}')
+    print('****************************************')
+    # img2_shape = (480, 640)
+    # intrinsics_json_path = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
+    # xyz_odom = panorama_pixel_to_world(u_final, v_final, img2_shape, depth2, intrinsics_json_path)
+    # print('==== final point:', xyz_odom)
 
     # panoramaResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
     # with open(panoramaResultJson, 'r') as f:
@@ -494,6 +500,90 @@ def generatePanoramaSample():
         xyz_tmp = transformMatrix_orb2rs @ np.array([x, y, z, 1])
         xyz = transformMatrix_base2orb @ xyz_tmp
         print('best grasp point -', xyz)'''
+
+
+def getOriginalFromPanorama(rgb, depth, u, v):
+
+    rgb_crop = rgb[204:564, 272:752]
+    u = int(u - 272)
+    v = int(v - 204)
+    rgb_crop_resized = cv2.resize(rgb_crop, (640, 480))
+    u = int(u / 0.75)
+    v = int(v / 0.75)
+
+    depth_crop = depth[204:564, 272:752]
+    depth_crop_resized = cv2.resize(depth_crop, (640, 480))
+
+    return rgb_crop_resized, depth_crop_resized
+
+
+def recalculateCoordinates(u, v):
+    u = int((u - 272) / 0.75)
+    v = int((v - 204) / 0.75)
+    return u, v
+
+
+def coordinates2odom(intrinsicsPath, cameraPosePath, u, v, rgb, depth):
+    with open(intrinsicsPath, 'r') as f:
+        cameraIntrinsics = json.load(f)
+    fx = cameraIntrinsics["focal_lengths_in_pixels"]["fx"]
+    fy = cameraIntrinsics["focal_lengths_in_pixels"]["fy"]
+    cx = cameraIntrinsics["principal_point_in_pixels"]["cx"]
+    cy = cameraIntrinsics["principal_point_in_pixels"]["cy"]
+
+    rgb_original, depth_original = getOriginalFromPanorama(rgb, depth, u, v)
+    u_new, v_new = recalculateCoordinates(u, v)
+    print(f'new: {u_new}, {v_new}')
+    v_new = min(v_new, 479)
+
+    z = depth[v, u]
+    z2 = depth_original[v_new, u_new]
+    x = (u_new - cx) * z / fx
+    y = (v_new - cy) * z / fy
+    print(f'in rs CS -> x: {x}, y: {y}, z: {z} (z2: {z2})')
+
+    transform_base2orb = getMatrixFromJson(cameraPosePath)
+    transform_orb2rs = np.array([
+        [ 0.9989575 , 0.04022338,  0.02158668, -0.00320142],
+        [-0.03988856, 0.99908041, -0.0157236 , -0.10964579],
+        [-0.02219929, 0.01484615,  0.99964333, -0.05616454],
+        [ 0.0       , 0.0       ,  0.0       ,  1.0       ]
+    ])
+    xyz_cam = transform_orb2rs @ np.array([x, y, z, 1.0])
+    print(f'in orb CS -> x: {xyz_cam[0]}, y: {xyz_cam[1]}, z: {xyz_cam[2]}')
+    xyz_world = transform_base2orb @ xyz_cam
+    print(f'in odom CS -> x: {xyz_world[0]}, y: {xyz_world[1]}, z: {xyz_world[2]}\n')
+
+    return [xyz_world[0], xyz_world[1], xyz_cam[2]]
+
+
+def getMatrixFromJson(poseJsonPath):
+    with open(poseJsonPath, 'r') as f:
+        data = json.load(f)
+    
+    t = np.array([
+        data["position_in_meters"]["x"],
+        data["position_in_meters"]["y"],
+        data["position_in_meters"]["z"]
+    ])
+
+    # --- extract Euler angles ---
+    roll  = data["rotation_euler_xyz_in_radians"]["roll"]
+    pitch = data["rotation_euler_xyz_in_radians"]["pitch"]
+    yaw   = data["rotation_euler_xyz_in_radians"]["yaw"]
+
+    # --- convert to rotation matrix ---
+    rot = Rotation.from_euler('xyz', [roll, pitch, yaw])
+    R_mat = rot.as_matrix()
+
+    # --- build homogeneous transform ---
+    T = np.eye(4)
+    T[:3, :3] = R_mat
+    T[:3, 3] = t
+
+    # print(f'transform matrix:\n{T}')
+
+    return(T)
 
 
 def panorama_to_middle_pixel(u_final, v_final, img2_shape):
