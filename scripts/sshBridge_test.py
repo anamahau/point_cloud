@@ -14,6 +14,7 @@ from std_msgs.msg import String, Bool, Int32
 from geometry_msgs.msg import PoseStamped
 from panorama_image import stitch_three
 from scipy.spatial.transform import Rotation
+from tf.transformations import quaternion_from_euler
 
 
 CONTAINER_NAME = 'talos_clothes'
@@ -441,6 +442,22 @@ def generatePanoramaSample():
     print('****************************************')
     print(f'x: {xyz_odom[0]:.4f}, y: {xyz_odom[1]:.4f}, z: {xyz_odom[2]:.4f}')
     print('****************************************')
+    roll = best_grasp["rotation_euler_xyz_in_radians"]["roll"]
+    pitch = best_grasp["rotation_euler_xyz_in_radians"]["pitch"]
+    yaw = best_grasp["rotation_euler_xyz_in_radians"]["yaw"]
+    qx, qy, qz, qw = quaternion_from_euler(roll, pitch, yaw)
+    pose_msg = PoseStamped()
+    pose_msg.header.stamp = rospy.Time.now()
+    pose_msg.header.frame_id = "odom"
+    pose_msg.pose.position.x = xyz_odom[0]
+    pose_msg.pose.position.y = xyz_odom[1]
+    pose_msg.pose.position.z = xyz_odom[2]
+    pose_msg.pose.orientation.x = qx
+    pose_msg.pose.orientation.y = qy
+    pose_msg.pose.orientation.z = qz
+    pose_msg.pose.orientation.w = qw
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub.publish(pose_msg)
     # img2_shape = (480, 640)
     # intrinsics_json_path = f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json'
     # xyz_odom = panorama_pixel_to_world(u_final, v_final, img2_shape, depth2, intrinsics_json_path)
