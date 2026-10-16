@@ -6,7 +6,10 @@ import json
 import rospy
 import subprocess
 import numpy as np
+from pathlib import Path
+from cv_bridge import CvBridge
 from std_msgs.msg import Bool
+from sensor_msgs.msg import Image
 
 
 
@@ -21,8 +24,11 @@ class qualityControl:
         self.container_name = 'talos_clothes'
         self.remote_user = 'anamarija'
         self.remote_host = '178.172.42.49'
-        self.remote_path = '/home/anamarija/SuperSimpleNet/tools/cloth_defect_folder_service/serve'
-        self.folder_path = '/home/pal/docker_anamarija/dataForClothDefectService'
+        # self.remote_path = '/home/anamarija/SuperSimpleNet/tools/cloth_defect_folder_service/serve'
+        self.remote_path = Path('/home/anamarija/SuperSimpleNet/tools')
+        self.remote_path_start = self.remote_path / 'tmpServe'
+        self.remote_path_result = self.remote_path / 'serve'
+        self.folder_path = Path('/home/pal/docker_anamarija/dataForClothDefectService')
 
 
     def trigger_callback(self, msg):
@@ -76,13 +82,13 @@ class qualityControl:
 
     def copy_folder_from_container():
 
-        cmd = f'scp -r {self.folder_path}/{self.folder_name}/ {self.remote_user}@{self.remote_host}:{self.remote_path}'
-        run_cmd(cmd)
+        cmd = f'scp -r {self.folder_path}/{self.folder_name}/ {self.remote_user}@{self.remote_host}:{self.remote_path_start}'
+        self.run_cmd(cmd)
 
 
     def wait_for_result():
 
-        remote_json = f'{self.remote_path}/{self.folder_name}/defect_predicted/result.json'
+        remote_json = f'{self.remote_path_result}/{self.folder_name}/defect_predicted/result.json'
         while True:
             cmd = f"ssh {self.remote_user}@{self.remote_host} 'test -f {remote_json}'"
             result = subprocess.run(cmd, shell=True)
@@ -95,7 +101,7 @@ class qualityControl:
 
     def copy_result_back():
 
-        cmd = f"scp -r {self.remote_user}@{self.remote_host}:{self.remote_path}/{self.folder_name}/defect_predicted/ {FOLDER_PATH}/{self.folder_name}/"
+        cmd = f"scp -r {self.remote_user}@{self.remote_host}:{self.remote_path_result}/{self.folder_name}/defect_predicted/ {self.folder_path}/{self.folder_name}/"
         run_cmd(cmd)
 
 
@@ -112,3 +118,5 @@ if __name__ == '__main__':
     rospy.init_node('qualityControl_node')
 
     QC = qualityControl()
+    rospy.loginfo('qualityControl node ready, waiting for trigger on /quality_control/trigger')
+    rospy.spin()

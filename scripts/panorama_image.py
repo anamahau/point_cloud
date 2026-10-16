@@ -4,10 +4,10 @@ import cv2
 import json
 import rospy
 import shutil
-import imutils
-import argparse
+# import imutils
+# import argparse
 import numpy as np
-from imutils import paths
+# from imutils import paths
 
 
 def find_matches_old(img1, img2):
