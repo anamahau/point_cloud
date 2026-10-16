@@ -11,11 +11,13 @@ import copy
 import math
 import rospy
 import struct
+from cv_bridge import CvBridge
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
 from point_cloud.msg import highLowPoint
 from std_msgs.msg import Bool, Int32, Float32MultiArray, Float32
 from geometry_msgs.msg import Polygon, Point32
+from sensor_msgs.msg import Image
 
 from tf_reader import getTfTransform, init_tf
 
@@ -154,10 +156,26 @@ def trigger_cb(msg):
     run_analysis = True
     iteration_data = msg.data
 
+def savePC(pointCloud, iteration):
+    points = np.array(
+        list(pc2.read_points(pointCloud, field_names=('x', 'y', 'z'), skip_nans=True)),
+        dtype=np.float32
+    )
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    save_path = f'/home/pal/docker_anamarija/imagesPC/PC_iteration_{iteration}.ply'
+    o3d.io.write_point_cloud(str(save_path), pcd)
+    rgb_img = rospy.wait_for_message('/rgbd/rgb/image_raw', Image, timeout=10)
+    bridge = CvBridge()
+    cv_img = bridge.imgmsg_to_cv2(rgb_img, desired_encoding='bgr8')
+    cv.imwrite(f'/home/pal/docker_anamarija/imagesPC/PC_iteration_{iteration}.png', cv_img)
+
 def PCanalysis(iteration):
     print('Hello from PCanalysis :)')
     print('number ', iteration)
     pc = rospy.wait_for_message('/rgbd/depth/points', PointCloud2)
+
+    savePC(pc, iteration)
 
     xyz_array_2 = pointcloud2_to_xyz_array(pc, iteration=iteration, maxZ=2)
     rgb_array_2 = np.zeros_like(xyz_array_2)

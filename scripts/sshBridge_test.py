@@ -328,6 +328,39 @@ def generate1imageSample():
     copy_result_back()
     rospy.loginfo('Done')
 
+    print(f'one image sample - folder name: {FOLDER_NAME}')
+
+    panoramaCoordinatesJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json'
+    with open(panoramaCoordinatesJson, 'r') as f:
+        coordinatesData = json.load(f)
+    best_grasp = max(coordinatesData, key=lambda x: x["score"])
+    u_final = best_grasp["u"]
+    v_final = best_grasp["v"]
+    rgb10 = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png')
+    depth10 = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff', cv2.IMREAD_UNCHANGED)
+    xyz_odom = coordinates2odom(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json', f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_pose_in_world.json', u_final, v_final, rgb10, depth10)
+    roll = best_grasp["rotation_euler_xyz_in_radians"]["roll"]
+    pitch = best_grasp["rotation_euler_xyz_in_radians"]["pitch"]
+    yaw = best_grasp["rotation_euler_xyz_in_radians"]["yaw"]
+    qx, qy, qz, qw = quaternion_from_euler(roll, pitch, yaw)
+    print('****************************************')
+    print(f'x: {xyz_odom[0]:.4f}, y: {xyz_odom[1]:.4f}, z: {xyz_odom[2]:.4f}')
+    print(f'x: {qx}, y: {qw}, z: {qz}, w: {qw}')
+    print(f'roll: {roll}, pitch: {pitch}, yaw: {yaw}')
+    print('****************************************')
+    pose_msg = PoseStamped()
+    pose_msg.header.stamp = rospy.Time.now()
+    pose_msg.header.frame_id = "odom"
+    pose_msg.pose.position.x = xyz_odom[0]
+    pose_msg.pose.position.y = xyz_odom[1]
+    pose_msg.pose.position.z = xyz_odom[2]
+    pose_msg.pose.orientation.x = qx
+    pose_msg.pose.orientation.y = qy
+    pose_msg.pose.orientation.z = qz
+    pose_msg.pose.orientation.w = qw
+    pub = rospy.Publisher('/cedirnet/goal_pose', PoseStamped, queue_size=10)
+    pub.publish(pose_msg)
+
     # newSampleResultJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_pose.json'
     # with open(newSampleResultJson, 'r') as f:
     #     newSampleJsonData = json.load(f)
@@ -430,6 +463,8 @@ def generatePanoramaSample():
     copy_result_back()
     rospy.loginfo('Done')
 
+    print(f'one image sample - folder name: {FOLDER_NAME}')
+
     panoramaCoordinatesJson = f'{FOLDER_PATH}/{FOLDER_NAME}/grasp_predicted/grasp_coordinates.json'
     with open(panoramaCoordinatesJson, 'r') as f:
         coordinatesData = json.load(f)
@@ -439,13 +474,15 @@ def generatePanoramaSample():
     rgb10 = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/image_left.png')
     depth10 = cv2.imread(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/depth_map.tiff', cv2.IMREAD_UNCHANGED)
     xyz_odom = coordinates2odom(f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_intrinsics.json', f'{FOLDER_PATH}/{FOLDER_NAME}/observation_start/camera_pose_in_world.json', u_final, v_final, rgb10, depth10)
-    print('****************************************')
-    print(f'x: {xyz_odom[0]:.4f}, y: {xyz_odom[1]:.4f}, z: {xyz_odom[2]:.4f}')
-    print('****************************************')
     roll = best_grasp["rotation_euler_xyz_in_radians"]["roll"]
     pitch = best_grasp["rotation_euler_xyz_in_radians"]["pitch"]
     yaw = best_grasp["rotation_euler_xyz_in_radians"]["yaw"]
     qx, qy, qz, qw = quaternion_from_euler(roll, pitch, yaw)
+    print('****************************************')
+    print(f'x: {xyz_odom[0]:.4f}, y: {xyz_odom[1]:.4f}, z: {xyz_odom[2]:.4f}')
+    print(f'x: {qx}, y: {qw}, z: {qz}, w: {qw}')
+    print(f'roll: {roll}, pitch: {pitch}, yaw: {yaw}')
+    print('****************************************')
     pose_msg = PoseStamped()
     pose_msg.header.stamp = rospy.Time.now()
     pose_msg.header.frame_id = "odom"
